@@ -64,16 +64,19 @@ function collapseSidebar() {
             :icon="LayoutDashboard"
             title="dashboard"
             :is-collapsed="isCollapsed"
+            route-to="/"
           />
           <SidebarButton
             :icon="ShoppingCart"
             title="compras"
             :is-collapsed="isCollapsed"
+            route-to="/shopping-list"
           />
           <SidebarButton
             :icon="Gift"
             title="presentes"
             :is-collapsed="isCollapsed"
+            route-to="/gifts"
           />
         </div>
       </SidebarSection>
@@ -94,6 +97,7 @@ function collapseSidebar() {
               :icon="button.icon"
               :title="button.title"
               :is-collapsed="isCollapsed"
+              :route-to="button.title"
             />
           </div>
         </div>
@@ -115,6 +119,7 @@ function collapseSidebar() {
               :use-random-color="true"
               :title="person"
               :is-collapsed="isCollapsed"
+              :route-to="person"
             />
           </div>
         </div>
@@ -136,6 +141,7 @@ function collapseSidebar() {
               :icon="button.icon"
               :title="button.title"
               :is-collapsed="isCollapsed"
+              :route-to="button.title"
             />
           </div>
         </div>
