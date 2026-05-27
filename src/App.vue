@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import GiftCard from './components/Gifts/GiftCard.vue';
 import Layout from './components/Layout.vue';
-import { GiftsMock } from './mocks/gifts.mock';
-import type { Gift } from './types/Gifts';
-
-const mocks: Gift[] = GiftsMock;
 
 </script>
 
