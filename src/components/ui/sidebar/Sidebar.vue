@@ -48,8 +48,14 @@ const persons: string[] = ["Beatriz", "Itallo", "Heloisa", "Mauricio", "Brenda",
 
 const isCollapsed = ref<boolean>(false);
 
+  const emit = defineEmits<{
+    collapse: [value: boolean];
+  }>();
+
 function collapseSidebar() {
     isCollapsed.value = !isCollapsed.value;
+
+    emit('collapse', isCollapsed.value);
 }
 
 </script>

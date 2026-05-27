@@ -5,10 +5,6 @@ import Layout from './components/Layout.vue';
 
 <template>
   <Layout>
-    <!-- <div class="flex flex-col w-full gap-3">
-      <div v-for="gift in mocks" :key="gift.id">
-        <GiftCard :gift="gift" />
-      </div>
-    </div> -->
+    <router-view />
   </Layout>
 </template>

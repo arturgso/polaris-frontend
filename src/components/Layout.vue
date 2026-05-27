@@ -1,12 +1,22 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import Sidebar from './ui/sidebar/Sidebar.vue';
+
+const isSidebarCollapsed = ref<boolean>(false);
+
+  function handleSidebarCollapse(value: boolean) {
+    isSidebarCollapsed.value = value; 
+  }
 
 </script>
 
 <template>
   <main>
-    <Sidebar />
-    <div class="container mx-auto p-4">
+    <Sidebar @collapse="handleSidebarCollapse" />
+    <div 
+      class="container mx-auto p-4 transition-all"
+      :class="isSidebarCollapsed ? 'ml-16' : 'ml-72'" 
+    >
       <slot />
     </div>
   </main>
