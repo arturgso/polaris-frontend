@@ -1,48 +1,10 @@
 <script setup lang="ts">
-import { Brush, Cake, CircleQuestionMark, Cpu, Gift, Heart, LayoutDashboard, LogOut, Package, ShoppingCart, Sidebar, TreePine, type LucideProps } from 'lucide-vue-next';
-import { ref, type FunctionalComponent } from 'vue';
+import { Gift, LayoutDashboard, LogOut, ShoppingCart, Sidebar } from 'lucide-vue-next';
+import { ref } from 'vue';
 import SidebarButton from './SidebarButton.vue';
 import SidebarSection from './SidebarSection.vue';
 import Divider from './Divider.vue';
-
-interface shoppingButtonsProps {
-    icon: FunctionalComponent<LucideProps>;
-    title: string;
-}
-
-const shoppingButtons: shoppingButtonsProps[] = [
-    {
-        icon: Cpu,
-        title: "tech"
-    },
-    {
-        icon: Heart,
-        title: "saúde"
-    },
-    {
-        icon: Brush,
-        title: "maquiagem"
-    },
-    {
-        icon: Package,
-        title: "outros"
-    },
-];
-
-const eventsButtons: shoppingButtonsProps[] = [
-    {
-        icon: TreePine,
-        title: "natal"
-    },
-    {
-        icon: Cake,
-        title: "Aniversário"
-    },
-    {
-        icon: CircleQuestionMark,
-        title: "não especificado"
-    },
-];
+import { eventsButtons, shoppingButtons } from '../../../mocks/sidebarButtons.mock.ts';
 
 const persons: string[] = ["Beatriz", "Itallo", "Heloisa", "Mauricio", "Brenda", "Carlos"];
 
