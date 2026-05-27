@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ChevronDown } from 'lucide-vue-next';
-
+import { ref } from 'vue';
 
 defineProps<{
     enableTitle: boolean;
     title?: string;
 }>();
+
+const isCollapsed = ref(true);
+
+const collapseSection = () => {
+    isCollapsed.value = !isCollapsed.value;
+};
+
 </script>
 
 <template>
@@ -15,9 +22,18 @@ defineProps<{
       class="flex justify-between gap-2 uppercase font-bold text-sm text-text-muted items-center"
     >
       <span>{{ title }}</span>
-      <ChevronDown :size="18" />
+      <button
+        class="button"
+        @click="collapseSection"
+      >
+        <ChevronDown
+          :size="18" 
+          class="transtition-transform duration-300"
+          :class="{ 'rotate-180': isCollapsed }"
+        />
+      </button>
     </div>
-    <slot />
+    <slot v-if="isCollapsed" />
     <div />
   </div>
 </template>

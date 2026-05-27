@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "prepare": "git config core.hooksPath .githooks || true",
     "build": "vue-tsc -b && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
