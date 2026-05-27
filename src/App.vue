@@ -1,6 +1,19 @@
 <script setup lang="ts">
+import GiftCard from './components/Gifts/GiftCard.vue';
+import Layout from './components/Layout.vue';
+import { GiftsMock } from './mocks/gifts.mock';
+import type { Gift } from './types/Gifts';
+
+const mocks: Gift[] = GiftsMock;
+
 </script>
 
 <template>
-  <h1 class="text-xl">Hello world</h1>
+  <Layout>
+    <!-- <div class="flex flex-col w-full gap-3">
+      <div v-for="gift in mocks" :key="gift.id">
+        <GiftCard :gift="gift" />
+      </div>
+    </div> -->
+  </Layout>
 </template>
