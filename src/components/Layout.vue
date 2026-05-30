@@ -2,7 +2,7 @@
 import { Menu } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import Sidebar from './ui/sidebar/Sidebar.vue';
+import { Sidebar } from '@/components';
 
 const isSidebarCollapsed = ref<boolean>(false);
 const isDrawerOpen = ref<boolean>(false);

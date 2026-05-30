@@ -1,4 +1,4 @@
-import type { Gift } from "../types/Gifts";
+import type { Gift } from '@/types';
 
 export const GiftsMock: Gift[] = [
     {

@@ -2,13 +2,11 @@
 import { Gift, LayoutDashboard, LogOut, Settings, ShoppingCart, Sidebar } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import SidebarButton from './SidebarButton.vue';
-import SidebarSection from './SidebarSection.vue';
-import Divider from './Divider.vue';
-import { MOCK_AUTH_STORAGE_KEY } from '../../../constants/mockAuth';
-import { eventsButtons } from '../../../mocks/sidebarButtons.mock.ts';
-import { getShoppingItemCategories } from '../../../services/shoppingItems';
-import type { ShoppingItemCategory } from '../../../types/ShoppingList';
+import { MOCK_AUTH_STORAGE_KEY } from '@/constants';
+import { eventsButtons } from '@/mocks';
+import { getShoppingItemCategories } from '@/services';
+import type { ShoppingItemCategory } from '@/types';
+import { Divider, SidebarButton, SidebarSection } from '@/components/ui/sidebar';
 
 const persons: string[] = ["Beatriz", "Itallo", "Heloisa", "Mauricio", "Brenda", "Carlos"];
 

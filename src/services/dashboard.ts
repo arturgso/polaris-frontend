@@ -1,6 +1,5 @@
-import { api } from './api';
-import type { DashboardMetricsDTO } from '../types/Dashboard';
-import type { ShoppingItem } from '../types/ShoppingList';
+import { api } from '@/services/api';
+import type { DashboardMetricsDTO, ShoppingItem } from '@/types';
 
 export async function getDashboardMetrics() {
   const { data } = await api.get<DashboardMetricsDTO>('/dashboard/metrics');

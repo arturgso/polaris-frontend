@@ -1,5 +1,5 @@
 import { Brush, Cake, CircleQuestionMark, Cpu, Heart, Package, TreePine } from "lucide-vue-next";
-import type { SidebarButtonsProps } from "../types/Sidebar";
+import type { SidebarButtonsProps } from '@/types';
 
 export const shoppingButtons: SidebarButtonsProps[] = [
     {

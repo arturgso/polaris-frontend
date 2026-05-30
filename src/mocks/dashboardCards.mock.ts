@@ -1,5 +1,5 @@
 import { Gift, ShoppingBag } from 'lucide-vue-next';
-import type { DashboardCardProps } from '../types/Dashboard';
+import type { DashboardCardProps } from '@/types';
 
 export const dashboardGiftCardMock: DashboardCardProps[] = [
   {

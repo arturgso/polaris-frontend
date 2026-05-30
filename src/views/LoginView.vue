@@ -2,14 +2,13 @@
 import { computed, ref } from 'vue';
 import { LogIn } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
-import BaseButton from '../components/ui/BaseButton.vue';
-import BaseTextField from '../components/ui/BaseTextField.vue';
+import { BaseButton, BaseTextField } from '@/components';
 import {
   MOCK_AUTH_EMAIL,
   MOCK_AUTH_PASSWORD,
   MOCK_AUTH_STORAGE_KEY,
   type MockAuthSession,
-} from '../constants/mockAuth';
+} from '@/constants';
 
 const router = useRouter();
 

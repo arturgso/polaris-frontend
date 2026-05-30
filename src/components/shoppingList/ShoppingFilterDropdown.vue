@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Filter } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { useClickOutside } from '../../composables/useClickOutside';
+import { useClickOutside } from '@/composables';
 
 defineProps<{
   title: string;

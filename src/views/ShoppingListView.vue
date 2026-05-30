@@ -2,13 +2,15 @@
 import { Trash2 } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import ShoppingItemCard from '../components/shoppingList/ShoppingItemCard.vue';
-import ShoppingItemForm from '../components/shoppingList/ShoppingItemForm.vue';
-import ShoppingListToolbar from '../components/shoppingList/ShoppingListToolbar.vue';
-import BaseButton from '../components/ui/BaseButton.vue';
-import BaseEmptyState from '../components/ui/BaseEmptyState.vue';
-import BaseModal from '../components/ui/BaseModal.vue';
-import { DEFAULT_SHOPPING_ITEM_COLOR } from '../constants/shoppingItemColors';
+import {
+  BaseButton,
+  BaseEmptyState,
+  BaseModal,
+  ShoppingItemCard,
+  ShoppingItemForm,
+  ShoppingListToolbar,
+} from '@/components';
+import { DEFAULT_SHOPPING_ITEM_COLOR } from '@/constants';
 import {
   createShoppingItem,
   deleteShoppingItem,
@@ -16,9 +18,13 @@ import {
   getShoppingItems,
   getShoppingItemStatuses,
   updateShoppingItem,
-} from '../services/shoppingItems';
-import type { ShoppingItem, ShoppingItemCategory, ShoppingItemStatus } from '../types/ShoppingList';
-import type { ShoppingItemFormData } from '../types/ShoppingItemForm';
+} from '@/services';
+import type {
+  ShoppingItem,
+  ShoppingItemCategory,
+  ShoppingItemFormData,
+  ShoppingItemStatus,
+} from '@/types';
 
 const shoppingItems = ref<ShoppingItem[]>([]);
 const categories = ref<ShoppingItemCategory[]>([]);

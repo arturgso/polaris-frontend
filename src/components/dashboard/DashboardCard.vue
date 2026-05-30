@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type DashboardCardProps } from '../../types/Dashboard';
+import type { DashboardCardProps } from '@/types';
 
 defineProps<{
     item: DashboardCardProps;

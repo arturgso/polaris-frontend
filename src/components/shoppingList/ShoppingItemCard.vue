@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { EllipsisVertical, ExternalLink, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { useClickOutside } from '../../composables/useClickOutside';
-import type { ShoppingItem } from '../../types/ShoppingList';
+import { useClickOutside } from '@/composables';
+import type { ShoppingItem } from '@/types';
 
 const props = defineProps<{
   item: ShoppingItem;

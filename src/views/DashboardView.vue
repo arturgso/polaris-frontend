@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { ShoppingCart, TrendingUp } from 'lucide-vue-next';
-import DashboardCard from '../components/dashboard/DashboardCard.vue';
-import BaseButton from '../components/ui/BaseButton.vue';
-import BaseEmptyState from '../components/ui/BaseEmptyState.vue';
-import { dashboardGiftCardMock } from '../mocks/dashboardCards.mock';
-import { getDashboardMetrics, getRecentShoppingItems } from '../services/dashboard';
-import type { DashboardCardProps, DashboardMetricsDTO } from '../types/Dashboard';
-import type { ShoppingItem } from '../types/ShoppingList';
+import { BaseButton, BaseEmptyState, DashboardCard } from '@/components';
+import { dashboardGiftCardMock } from '@/mocks';
+import { getDashboardMetrics, getRecentShoppingItems } from '@/services';
+import type { DashboardCardProps, DashboardMetricsDTO, ShoppingItem } from '@/types';
 
 const dashboardMetrics = ref<DashboardMetricsDTO | null>(null);
 const recentShoppingItems = ref<ShoppingItem[]>([]);

@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api } from '@/services/api';
 import type {
   NewShoppingItemCategoryDTO,
   NewShoppingItemDTO,
@@ -7,7 +7,7 @@ import type {
   ShoppingItemFilters,
   ShoppingItemStatus,
   UpdateShoppingItemDTO,
-} from '../types/ShoppingList';
+} from '@/types';
 
 export async function getShoppingItems(filters: ShoppingItemFilters = {}) {
   const { data } = await api.get<ShoppingItem[]>('/shopping-items', {

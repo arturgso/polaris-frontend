@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Calendar, Dot, Link, Pen, Pin, Trash, User } from 'lucide-vue-next';
-import type { Gift } from '../../types/Gifts';
+import type { Gift } from '@/types';
 import GiftCardInfo from './GiftCardInfo.vue';
 
 defineProps<{

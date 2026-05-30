@@ -1,9 +1,11 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import { MOCK_AUTH_STORAGE_KEY } from '../constants/mockAuth';
-import DashboardView from '../views/DashboardView.vue';
-import LoginView from '../views/LoginView.vue';
-import SettingsView from '../views/SettingsView.vue';
-import ShoppingListView from '../views/ShoppingListView.vue';
+import { MOCK_AUTH_STORAGE_KEY } from '@/constants';
+import {
+  DashboardView,
+  LoginView,
+  SettingsView,
+  ShoppingListView,
+} from '@/views';
 
 const routes = [
   {

@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import BaseButton from '../ui/BaseButton.vue';
-import BaseSelect from '../ui/BaseSelect.vue';
-import BaseTextField from '../ui/BaseTextField.vue';
-import { SHOPPING_ITEM_COLORS } from '../../constants/shoppingItemColors';
-import type { ShoppingItemCategory, ShoppingItemStatus } from '../../types/ShoppingList';
-import type { ShoppingItemFormData } from '../../types/ShoppingItemForm';
+import { BaseButton, BaseSelect, BaseTextField } from '@/components';
+import { SHOPPING_ITEM_COLORS } from '@/constants';
+import type { ShoppingItemCategory, ShoppingItemFormData, ShoppingItemStatus } from '@/types';
 
 const props = defineProps<{
   modelValue: ShoppingItemFormData;

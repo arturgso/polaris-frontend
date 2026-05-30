@@ -3,7 +3,7 @@ import { Monitor, Moon, Settings, Sun } from 'lucide-vue-next';
 import type { FunctionalComponent } from 'vue';
 import type { LucideProps } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { useThemeSettings, type ThemeMode } from '../composables/useThemeSettings';
+import { useThemeSettings, type ThemeMode } from '@/composables';
 
 const themeOptions: Array<{
   mode: ThemeMode;

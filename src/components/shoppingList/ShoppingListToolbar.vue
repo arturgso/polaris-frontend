@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Plus, Search, X } from 'lucide-vue-next';
 import { computed } from 'vue';
-import BaseButton from '../ui/BaseButton.vue';
-import BaseTextField from '../ui/BaseTextField.vue';
+import { BaseButton, BaseTextField } from '@/components';
 import ShoppingFilterDropdown from './ShoppingFilterDropdown.vue';
-import type { ShoppingItemCategory, ShoppingItemStatus } from '../../types/ShoppingList';
+import type { ShoppingItemCategory, ShoppingItemStatus } from '@/types';
 
 const props = defineProps<{
   searchTerm: string;
