@@ -51,6 +51,7 @@ export interface NewShoppingItemCategoryDTO {
 }
 
 export interface ShoppingItemFilters {
+  title?: string;
   statusId?: number;
   categoryId?: number;
 }

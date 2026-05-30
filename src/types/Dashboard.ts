@@ -1,10 +1,15 @@
-import type { LucideProps } from "lucide-vue-next";
-import type { FunctionalComponent } from "vue";
+import type { LucideProps } from 'lucide-vue-next';
+import type { FunctionalComponent } from 'vue';
 
 export interface DashboardCardProps {
-    id: number; 
-    icon: FunctionalComponent<LucideProps>;
-    title: string;
-    info: string;
-    bottomInfo: string;
+  id: number;
+  icon: FunctionalComponent<LucideProps>;
+  title: string;
+  info: string;
+  bottomInfo: string;
+}
+
+export interface DashboardMetricsDTO {
+  shoppingItemsCount: number;
+  shoppingItemsTotal: number;
 }

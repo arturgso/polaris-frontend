@@ -52,7 +52,7 @@ useClickOutside(menuRef, () => {
 <template>
   <article
     ref="menuRef"
-    class="relative flex h-full min-h-44 flex-col gap-5 rounded-md border-2 border-border bg-card p-4 transition duration-150 hover:border-accent"
+    class="relative flex h-full min-h-48 flex-col gap-5 rounded-md border-2 border-border bg-card p-5 transition duration-150 hover:border-accent"
     :class="isMuted ? 'opacity-55 grayscale hover:opacity-75' : ''"
   >
     <button

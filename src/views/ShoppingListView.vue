@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import ShoppingItemCard from '../components/shoppingList/ShoppingItemCard.vue';
 import ShoppingItemForm from '../components/shoppingList/ShoppingItemForm.vue';
@@ -35,6 +35,8 @@ const isDeleting = ref<boolean>(false);
 const searchTerm = ref<string>('');
 const selectedCategoryIds = ref<number[]>([]);
 const selectedStatusIds = ref<number[]>([]);
+let shoppingItemsRequestId = 0;
+let searchTimeoutId: ReturnType<typeof setTimeout> | undefined;
 const emptyForm: ShoppingItemFormData = {
   title: '',
   link: '',
@@ -46,20 +48,13 @@ const emptyForm: ShoppingItemFormData = {
 const itemForm = ref<ShoppingItemFormData>({ ...emptyForm });
 
 const filteredShoppingItems = computed(() => {
-  const normalizedSearch = searchTerm.value.trim().toLowerCase();
-
   return shoppingItems.value.filter((item) => {
-    const matchesSearch = normalizedSearch.length === 0
-      || item.title.toLowerCase().includes(normalizedSearch)
-      || item.link.toLowerCase().includes(normalizedSearch)
-      || item.category.name.toLowerCase().includes(normalizedSearch)
-      || item.status.name.toLowerCase().includes(normalizedSearch);
     const matchesCategory = selectedCategoryIds.value.length === 0
       || selectedCategoryIds.value.includes(item.category.id);
     const matchesStatus = selectedStatusIds.value.length === 0
       || selectedStatusIds.value.includes(item.status.id);
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesCategory && matchesStatus;
   });
 });
 
@@ -72,15 +67,27 @@ function getSelectedCategoryId() {
 }
 
 async function loadShoppingItems() {
+  const currentRequestId = shoppingItemsRequestId + 1;
+  const title = searchTerm.value.trim();
+
+  shoppingItemsRequestId = currentRequestId;
   isLoading.value = true;
   errorMessage.value = '';
 
   try {
-    shoppingItems.value = await getShoppingItems();
+    const loadedShoppingItems = await getShoppingItems(title ? { title } : {});
+
+    if (currentRequestId === shoppingItemsRequestId) {
+      shoppingItems.value = loadedShoppingItems;
+    }
   } catch {
-    errorMessage.value = 'Nao foi possivel carregar a lista de compras.';
+    if (currentRequestId === shoppingItemsRequestId) {
+      errorMessage.value = 'Nao foi possivel carregar a lista de compras.';
+    }
   } finally {
-    isLoading.value = false;
+    if (currentRequestId === shoppingItemsRequestId) {
+      isLoading.value = false;
+    }
   }
 }
 
@@ -205,6 +212,12 @@ onMounted(() => {
   void loadShoppingItemOptions();
 });
 
+onUnmounted(() => {
+  if (searchTimeoutId) {
+    clearTimeout(searchTimeoutId);
+  }
+});
+
 watch(
   () => route.query.categoryId,
   () => {
@@ -212,11 +225,21 @@ watch(
     selectedCategoryIds.value = categoryId ? [categoryId] : [];
   },
 );
+
+watch(searchTerm, () => {
+  if (searchTimeoutId) {
+    clearTimeout(searchTimeoutId);
+  }
+
+  searchTimeoutId = setTimeout(() => {
+    void loadShoppingItems();
+  }, 300);
+});
 </script>
 
 <template>
-  <div class="mt-8 flex h-full flex-col items-center">
-    <div class="flex w-full flex-col gap-6">
+  <div class="flex h-full flex-col items-center">
+    <div class="flex w-full flex-col gap-8">
       <ShoppingListToolbar
         v-model:search-term="searchTerm"
         :categories="categories"
@@ -261,11 +284,12 @@ watch(
 
       <div
         v-else
-        class="grid w-full grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+        class="grid w-full grid-cols-1 justify-items-center gap-5 md:grid-cols-2 xl:grid-cols-3"
       >
         <div
           v-for="item in filteredShoppingItems"
           :key="item.id"
+          class="w-full max-w-sm"
         >
           <ShoppingItemCard
             :item="item"

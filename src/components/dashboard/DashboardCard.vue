@@ -8,7 +8,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="bg-card p-6 rounded-md border-2 border-border min-w-[22rem]">
+  <div class="h-full w-full rounded-md border-2 border-border bg-card p-6">
     <div class="flex flex-row items-center justify-between">
       <h1 class="text-sm text-text-secondary uppercase">
         {{ item.title }}
