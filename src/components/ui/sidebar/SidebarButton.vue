@@ -1,57 +1,70 @@
 <script setup lang="ts">
 import type { LucideProps } from 'lucide-vue-next';
 import type { FunctionalComponent } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed } from 'vue';
+import { useRoute, type RouteLocationRaw } from 'vue-router';
 
-defineProps<{
-    icon?: FunctionalComponent<LucideProps>;
-    title: string;
-    useRandomColor?: boolean;
-    isCollapsed: boolean;
-    routeTo: string;
+const props = defineProps<{
+  icon?: FunctionalComponent<LucideProps>;
+  title: string;
+  useRandomColor?: boolean;
+  color?: string;
+  isCollapsed: boolean;
+  routeTo: RouteLocationRaw;
 }>();
 
 const route = useRoute();
 
-let lastHue = -1;
+const swatchColor = computed(() => props.color ?? generateColorFromText(props.title));
 
-function generateRandomColor(): string {
-    let hue = Math.floor(Math.random() * 360);
+function generateColorFromText(value: string): string {
+  const hue = value.split('').reduce((accumulator, letter) => accumulator + letter.charCodeAt(0), 0) % 360;
 
-    if (lastHue !== -1 && Math.abs(hue - lastHue) < 30) {
-        hue = (hue + 60) % 360;
-    }
+  return `hsl(${hue}, 75%, 58%)`;
+}
 
-    lastHue = hue;
+function isRouteActive(routeTo: RouteLocationRaw) {
+  if (typeof routeTo === 'string') {
+    return routeTo === route.path && Object.keys(route.query).length === 0;
+  }
 
-    const saturation = 70 + Math.random() * 30;
-    const lightness = 45 + Math.random() * 70;
+  if (!('path' in routeTo) || routeTo.path !== route.path) {
+    return false;
+  }
 
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-
+  return Object.entries(routeTo.query ?? {}).every(([key, value]) => route.query[key] === String(value));
 }
 </script>
 
 <template>
   <router-link
     :to="routeTo"
-    class="group flex items-center gap-2 capitalize text-text-secondary cursor-pointer px-2 py-1 hover:bg-card rounded-md"
-    :class="routeTo === route.path ? 'bg-accent text-black font-bold hover:bg-accent-hover' : ''"
+    class="group flex min-h-8 items-center gap-2 rounded-md px-2 py-1 transition duration-150"
+    :class="[
+      isCollapsed ? 'justify-center' : '',
+      isRouteActive(routeTo) ? 'bg-accent font-bold text-bg hover:bg-accent-hover hover:text-bg' : 'text-text-secondary hover:bg-card hover:text-text-primary'
+    ]"
   >
     <div
-      v-if="useRandomColor"
-      :style="{ backgroundColor: generateRandomColor() }"
-      class="w-3 h-3 rounded-sm"
-    />
-    <div
-      v-else
-      class="group-hover:text-accent"
+      v-if="icon"
+      class="flex shrink-0 items-center"
+      :class="isRouteActive(routeTo) ? 'text-bg group-hover:text-bg' : 'group-hover:text-accent'"
     >
       <icon :size="isCollapsed ? '20' : '16'" />
     </div>
+    <div
+      v-else-if="useRandomColor || color"
+      :style="{ backgroundColor: swatchColor }"
+      class="h-3 w-3 shrink-0 rounded-sm"
+    />
+    <div
+      v-if="color && icon && !isCollapsed"
+      :style="{ backgroundColor: color }"
+      class="h-2 w-2 shrink-0 rounded-sm"
+    />
     <span
       v-if="!isCollapsed"
-      class="text-sm"
+      class="truncate text-sm capitalize"
     >{{ title }}</span>
   </router-link>
 </template>

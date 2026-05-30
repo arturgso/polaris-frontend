@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Plus, Trash2 } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { Check, Filter, Plus, Search, Trash2, X } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import ShoppingItemCard from '../components/shoppingList/ShoppingItemCard.vue';
 import BaseModal from '../components/ui/BaseModal.vue';
 import {
@@ -24,6 +25,7 @@ interface ShoppingItemForm {
 const shoppingItems = ref<ShoppingItem[]>([]);
 const categories = ref<ShoppingItemCategory[]>([]);
 const statuses = ref<ShoppingItemStatus[]>([]);
+const route = useRoute();
 const isLoading = ref<boolean>(false);
 const isSaving = ref<boolean>(false);
 const errorMessage = ref<string>('');
@@ -32,6 +34,13 @@ const isAddModalOpen = ref<boolean>(false);
 const itemToEdit = ref<ShoppingItem | null>(null);
 const itemToDelete = ref<ShoppingItem | null>(null);
 const isDeleting = ref<boolean>(false);
+const searchTerm = ref<string>('');
+const selectedCategoryIds = ref<number[]>([]);
+const selectedStatusIds = ref<number[]>([]);
+const isCategoryFilterOpen = ref<boolean>(false);
+const isStatusFilterOpen = ref<boolean>(false);
+const categoryFilterRef = ref<HTMLElement | null>(null);
+const statusFilterRef = ref<HTMLElement | null>(null);
 const emptyForm: ShoppingItemForm = {
   title: '',
   link: '',
@@ -40,6 +49,34 @@ const emptyForm: ShoppingItemForm = {
   statusId: 0,
 };
 const itemForm = ref<ShoppingItemForm>({ ...emptyForm });
+
+const filteredShoppingItems = computed(() => {
+  const normalizedSearch = searchTerm.value.trim().toLowerCase();
+
+  return shoppingItems.value.filter((item) => {
+    const matchesSearch = normalizedSearch.length === 0
+      || item.title.toLowerCase().includes(normalizedSearch)
+      || item.link.toLowerCase().includes(normalizedSearch)
+      || item.category.name.toLowerCase().includes(normalizedSearch)
+      || item.status.name.toLowerCase().includes(normalizedSearch);
+    const matchesCategory = selectedCategoryIds.value.length === 0
+      || selectedCategoryIds.value.includes(item.category.id);
+    const matchesStatus = selectedStatusIds.value.length === 0
+      || selectedStatusIds.value.includes(item.status.id);
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+});
+
+const activeFilterCount = computed(() => selectedCategoryIds.value.length + selectedStatusIds.value.length);
+
+function getSelectedCategoryId() {
+  const categoryId = route.query.categoryId;
+  const normalizedCategoryId = Array.isArray(categoryId) ? categoryId[0] : categoryId;
+  const parsedCategoryId = Number(normalizedCategoryId);
+
+  return Number.isFinite(parsedCategoryId) && parsedCategoryId > 0 ? parsedCategoryId : undefined;
+}
 
 async function loadShoppingItems() {
   isLoading.value = true;
@@ -51,6 +88,46 @@ async function loadShoppingItems() {
     errorMessage.value = 'Nao foi possivel carregar a lista de compras.';
   } finally {
     isLoading.value = false;
+  }
+}
+
+function toggleFilter(filterValues: number[], value: number) {
+  const currentIndex = filterValues.indexOf(value);
+
+  if (currentIndex >= 0) {
+    filterValues.splice(currentIndex, 1);
+    return;
+  }
+
+  filterValues.push(value);
+}
+
+function toggleCategoryFilter(categoryId: number) {
+  toggleFilter(selectedCategoryIds.value, categoryId);
+}
+
+function toggleStatusFilter(statusId: number) {
+  toggleFilter(selectedStatusIds.value, statusId);
+}
+
+function clearFilters() {
+  selectedCategoryIds.value = [];
+  selectedStatusIds.value = [];
+}
+
+function handleDocumentClick(event: MouseEvent) {
+  const target = event.target;
+
+  if (!(target instanceof Node)) {
+    return;
+  }
+
+  if (categoryFilterRef.value && !categoryFilterRef.value.contains(target)) {
+    isCategoryFilterOpen.value = false;
+  }
+
+  if (statusFilterRef.value && !statusFilterRef.value.contains(target)) {
+    isStatusFilterOpen.value = false;
   }
 }
 
@@ -148,9 +225,28 @@ async function confirmDeleteItem() {
 }
 
 onMounted(() => {
+  const categoryId = getSelectedCategoryId();
+
+  if (categoryId) {
+    selectedCategoryIds.value = [categoryId];
+  }
+
   void loadShoppingItems();
   void loadShoppingItemOptions();
+  document.addEventListener('click', handleDocumentClick);
 });
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick);
+});
+
+watch(
+  () => route.query.categoryId,
+  () => {
+    const categoryId = getSelectedCategoryId();
+    selectedCategoryIds.value = categoryId ? [categoryId] : [];
+  },
+);
 </script>
 
 <template>
@@ -161,14 +257,133 @@ onMounted(() => {
           Lista de compras
         </h1>
 
-        <button
-          type="button"
-          class="flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-bg transition duration-150 hover:bg-accent-hover"
-          @click="openAddModal"
-        >
-          <Plus :size="18" />
-          Novo item
-        </button>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <label class="relative w-64">
+            <Search
+              :size="16"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            />
+            <input
+              v-model="searchTerm"
+              type="search"
+              placeholder="Pesquisar"
+              class="h-10 w-full rounded-md border-2 border-border bg-card pl-9 pr-3 text-sm text-text-primary outline-none transition duration-150 placeholder:text-text-muted focus:border-accent"
+            >
+          </label>
+
+          <div
+            ref="categoryFilterRef"
+            class="relative"
+          >
+            <button
+              type="button"
+              class="flex h-10 items-center gap-2 rounded-md border-2 border-border bg-card px-3 text-sm font-semibold text-text-secondary transition duration-150 hover:border-accent hover:text-text-primary"
+              :class="selectedCategoryIds.length > 0 ? 'border-accent text-text-primary' : ''"
+              @click="isCategoryFilterOpen = !isCategoryFilterOpen"
+            >
+              <Filter :size="16" />
+              Categorias
+              <span
+                v-if="selectedCategoryIds.length > 0"
+                class="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-bold text-bg"
+              >
+                {{ selectedCategoryIds.length }}
+              </span>
+            </button>
+
+            <div
+              v-if="isCategoryFilterOpen"
+              class="absolute right-0 top-12 z-20 flex w-48 flex-col gap-1 rounded-md border-2 border-border bg-surface p-2 shadow-xl"
+            >
+              <button
+                v-for="category in categories"
+                :key="category.id"
+                type="button"
+                class="flex items-center justify-between gap-2 rounded-sm px-2 py-2 text-left text-sm text-text-secondary transition duration-150 hover:bg-card hover:text-text-primary"
+                :class="selectedCategoryIds.includes(category.id) ? 'bg-card text-text-primary' : ''"
+                @click="toggleCategoryFilter(category.id)"
+              >
+                <span class="flex items-center gap-2">
+                  <span
+                    class="h-3 w-3 rounded-sm"
+                    :style="{ backgroundColor: category.color }"
+                  />
+                  {{ category.name }}
+                </span>
+                <Check
+                  v-if="selectedCategoryIds.includes(category.id)"
+                  :size="14"
+                />
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref="statusFilterRef"
+            class="relative"
+          >
+            <button
+              type="button"
+              class="flex h-10 items-center gap-2 rounded-md border-2 border-border bg-card px-3 text-sm font-semibold text-text-secondary transition duration-150 hover:border-accent hover:text-text-primary"
+              :class="selectedStatusIds.length > 0 ? 'border-accent text-text-primary' : ''"
+              @click="isStatusFilterOpen = !isStatusFilterOpen"
+            >
+              <Filter :size="16" />
+              Status
+              <span
+                v-if="selectedStatusIds.length > 0"
+                class="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-bold text-bg"
+              >
+                {{ selectedStatusIds.length }}
+              </span>
+            </button>
+
+            <div
+              v-if="isStatusFilterOpen"
+              class="absolute right-0 top-12 z-20 flex w-48 flex-col gap-1 rounded-md border-2 border-border bg-surface p-2 shadow-xl"
+            >
+              <button
+                v-for="status in statuses"
+                :key="status.id"
+                type="button"
+                class="flex items-center justify-between gap-2 rounded-sm px-2 py-2 text-left text-sm text-text-secondary transition duration-150 hover:bg-card hover:text-text-primary"
+                :class="selectedStatusIds.includes(status.id) ? 'bg-card text-text-primary' : ''"
+                @click="toggleStatusFilter(status.id)"
+              >
+                <span class="flex items-center gap-2">
+                  <span
+                    class="h-3 w-3 rounded-sm"
+                    :style="{ backgroundColor: status.color }"
+                  />
+                  {{ status.name }}
+                </span>
+                <Check
+                  v-if="selectedStatusIds.includes(status.id)"
+                  :size="14"
+                />
+              </button>
+            </div>
+          </div>
+
+          <button
+            v-if="activeFilterCount > 0"
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-md border-2 border-border px-3 text-sm font-semibold text-text-secondary transition duration-150 hover:border-accent hover:text-text-primary"
+            @click="clearFilters"
+          >
+            <X :size="16" />
+            Limpar
+          </button>
+
+          <button
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-bg transition duration-150 hover:bg-accent-hover"
+            @click="openAddModal"
+          >
+            <Plus :size="18" />
+            Novo item
+          </button>
+        </div>
       </div>
 
       <div
@@ -202,11 +417,18 @@ onMounted(() => {
       </div>
 
       <div
+        v-else-if="filteredShoppingItems.length === 0"
+        class="w-full rounded-md border-2 border-border bg-card p-6 text-sm text-text-secondary"
+      >
+        Nenhum item encontrado para os filtros atuais.
+      </div>
+
+      <div
         v-else
         class="grid w-full grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
       >
         <div
-          v-for="item in shoppingItems"
+          v-for="item in filteredShoppingItems"
           :key="item.id"
         >
           <ShoppingItemCard

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { EllipsisVertical, ExternalLink, Pencil, Trash2 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ShoppingItem } from '../../types/ShoppingList';
 
 defineProps<{
@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const isMenuOpen = ref<boolean>(false);
+const menuRef = ref<HTMLElement | null>(null);
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -40,10 +41,31 @@ function handleDelete(item: ShoppingItem) {
   emit('delete', item);
   isMenuOpen.value = false;
 }
+
+function handleDocumentClick(event: MouseEvent) {
+  const target = event.target;
+
+  if (!(target instanceof Node) || !menuRef.value || menuRef.value.contains(target)) {
+    return;
+  }
+
+  isMenuOpen.value = false;
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick);
+});
 </script>
 
 <template>
-  <article class="relative flex h-full min-h-44 flex-col gap-5 rounded-md border-2 border-border bg-card p-4 transition duration-150 hover:border-accent">
+  <article
+    ref="menuRef"
+    class="relative flex h-full min-h-44 flex-col gap-5 rounded-md border-2 border-border bg-card p-4 transition duration-150 hover:border-accent"
+  >
     <button
       type="button"
       class="absolute right-2 top-2 rounded-md p-1 text-text-muted transition duration-150 hover:bg-surface hover:text-text-primary"

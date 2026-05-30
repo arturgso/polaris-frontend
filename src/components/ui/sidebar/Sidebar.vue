@@ -1,41 +1,61 @@
 <script setup lang="ts">
 import { Gift, LayoutDashboard, LogOut, ShoppingCart, Sidebar } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import SidebarButton from './SidebarButton.vue';
 import SidebarSection from './SidebarSection.vue';
 import Divider from './Divider.vue';
-import { eventsButtons, shoppingButtons } from '../../../mocks/sidebarButtons.mock.ts';
+import { eventsButtons } from '../../../mocks/sidebarButtons.mock.ts';
+import { getShoppingItemCategories } from '../../../services/shoppingItems';
+import type { ShoppingItemCategory } from '../../../types/ShoppingList';
 
 const persons: string[] = ["Beatriz", "Itallo", "Heloisa", "Mauricio", "Brenda", "Carlos"];
 
 const isCollapsed = ref<boolean>(false);
+const shoppingCategories = ref<ShoppingItemCategory[]>([]);
+const isLoadingCategories = ref<boolean>(false);
+const categoriesErrorMessage = ref<string>('');
 
-  const emit = defineEmits<{
-    collapse: [value: boolean];
-  }>();
+const emit = defineEmits<{
+  collapse: [value: boolean];
+}>();
 
 function collapseSidebar() {
-    isCollapsed.value = !isCollapsed.value;
+  isCollapsed.value = !isCollapsed.value;
 
-    emit('collapse', isCollapsed.value);
+  emit('collapse', isCollapsed.value);
 }
 
+async function loadShoppingCategories() {
+  isLoadingCategories.value = true;
+  categoriesErrorMessage.value = '';
+
+  try {
+    shoppingCategories.value = await getShoppingItemCategories();
+  } catch {
+    categoriesErrorMessage.value = 'Nao foi possivel carregar categorias.';
+  } finally {
+    isLoadingCategories.value = false;
+  }
+}
+
+onMounted(() => {
+  void loadShoppingCategories();
+});
 </script>
 
 <template>
   <aside
     :class="[
-      'bg-surface fixed h-full border-r-2 border-border flex flex-col justify-between',
-      isCollapsed ? 'w-12' : 'w-64'
+      'fixed flex h-full flex-col justify-between border-r-2 border-border bg-surface transition-all duration-150',
+      isCollapsed ? 'w-14' : 'w-64'
     ]"
   >
-    <div>
-      <div class="p-3 relative">
-        <div>
+    <div class="min-h-0 overflow-y-auto">
+      <div class="relative p-3">
+        <div class="flex items-center justify-between gap-2">
           <h1
-            :class="['text-2xl font-bold text-text-secondary',
-                     isCollapsed ? 'hidden' : ''
-            ]"
+            v-if="!isCollapsed"
+            class="text-2xl font-bold text-text-secondary"
           >
             Polaris
           </h1>
@@ -43,12 +63,13 @@ function collapseSidebar() {
           <button
             type="button"
             :class="[
-              '  text-text-muted hover:text-accent',
-              isCollapsed ? '' : 'absolute right-3 top-5' 
+              'rounded-md p-1 text-text-muted transition duration-150 hover:bg-card hover:text-accent',
+              isCollapsed ? 'mx-auto' : ''
             ]"
+            aria-label="Alternar sidebar"
             @click="collapseSidebar"
           >
-            <Sidebar :size="isCollapsed ? 20 : 20" />
+            <Sidebar :size="20" />
           </button>
         </div>
       </div>
@@ -59,7 +80,7 @@ function collapseSidebar() {
         :enable-title="false"
         :is-sidebar-collapsed="isCollapsed"
       >
-        <div :class="[isCollapsed ? 'flex flex-col gap-2' : '']">
+        <div :class="['flex flex-col', isCollapsed ? 'gap-2' : 'gap-1']">
           <SidebarButton
             :icon="LayoutDashboard"
             title="dashboard"
@@ -90,16 +111,45 @@ function collapseSidebar() {
       >
         <div :class="['flex flex-col', isCollapsed ? 'gap-2' : 'gap-1']">
           <div
-            v-for="button in shoppingButtons"
-            :key="button.title"
+            v-if="isLoadingCategories"
+            :class="[
+              'text-xs text-text-muted',
+              isCollapsed ? 'h-8 w-8 rounded-md bg-card' : 'px-2 py-1'
+            ]"
           >
-            <SidebarButton
-              :icon="button.icon"
-              :title="button.title"
-              :is-collapsed="isCollapsed"
-              :route-to="button.title"
-            />
+            <span v-if="!isCollapsed">Carregando...</span>
           </div>
+          <div
+            v-else-if="categoriesErrorMessage"
+            :class="[
+              'text-xs text-text-muted',
+              isCollapsed ? 'h-8 w-8 rounded-md bg-card' : 'px-2 py-1'
+            ]"
+          >
+            <span v-if="!isCollapsed">{{ categoriesErrorMessage }}</span>
+          </div>
+          <div
+            v-else-if="shoppingCategories.length === 0"
+            :class="[
+              'text-xs text-text-muted',
+              isCollapsed ? 'h-8 w-8 rounded-md bg-card' : 'px-2 py-1'
+            ]"
+          >
+            <span v-if="!isCollapsed">Nenhuma categoria</span>
+          </div>
+          <template v-else>
+            <div
+              v-for="category in shoppingCategories"
+              :key="category.id"
+            >
+              <SidebarButton
+                :title="category.name"
+                :color="category.color"
+                :is-collapsed="isCollapsed"
+                :route-to="{ path: '/shopping-list', query: { categoryId: category.id } }"
+              />
+            </div>
+          </template>
         </div>
       </SidebarSection>
 
@@ -152,7 +202,7 @@ function collapseSidebar() {
       <div :class="[isCollapsed ? 'p-1' : 'p-3']">
         <button
           type="button"
-          :class="[isCollapsed ? 'flex items-center justify-center w-full mb-2 hover:text-accent' : 'flex flex-row gap-2 items-center hover:text-accent px-2 py-1 rounded-md hover:bg-accent-hover/30 w-full']"
+          :class="[isCollapsed ? 'mb-2 flex w-full items-center justify-center rounded-md p-1 hover:bg-card hover:text-accent' : 'flex w-full flex-row items-center gap-2 rounded-md px-2 py-1 hover:bg-card hover:text-accent']"
         >
           <LogOut :size="18" />
           <span v-if="!isCollapsed">Sair</span>
