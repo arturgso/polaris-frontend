@@ -2,7 +2,19 @@ export type {
   DashboardCardProps,
   DashboardMetricsDTO,
 } from './Dashboard';
-export type { Gift } from './Gifts';
+export type {
+  Event,
+  Gift,
+  GiftFormData,
+  GiftStatus,
+  GiftWithPersonId,
+  NewGiftDTO,
+  NewPersonDTO,
+  Person,
+  PersonFormData,
+  UpdateGiftDTO,
+  UpdatePersonDTO,
+} from './Gifts';
 export type { ShoppingItemFormData } from './ShoppingItemForm';
 export type {
   ShoppingItem,

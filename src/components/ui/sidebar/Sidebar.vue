@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { Gift, LayoutDashboard, LogOut, Settings, ShoppingCart, Sidebar } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { MOCK_AUTH_STORAGE_KEY } from '@/constants';
 import { eventsButtons } from '@/mocks';
-import { getShoppingItemCategories } from '@/services';
-import type { ShoppingItemCategory } from '@/types';
+import { getPersons, getShoppingItemCategories } from '@/services';
+import type { Person, ShoppingItemCategory } from '@/types';
 import { Divider, SidebarButton, SidebarSection } from '@/components/ui/sidebar';
-
-const persons: string[] = ["Beatriz", "Itallo", "Heloisa", "Mauricio", "Brenda", "Carlos"];
 
 const router = useRouter();
 const isCollapsed = ref<boolean>(false);
 const shoppingCategories = ref<ShoppingItemCategory[]>([]);
+const persons = ref<Person[]>([]);
 const isLoadingCategories = ref<boolean>(false);
+const isLoadingPersons = ref<boolean>(false);
 const categoriesErrorMessage = ref<string>('');
+const personsErrorMessage = ref<string>('');
 
 const props = withDefaults(defineProps<{
   isDrawer?: boolean;
@@ -55,6 +56,19 @@ async function loadShoppingCategories() {
   }
 }
 
+async function loadPersons() {
+  isLoadingPersons.value = true;
+  personsErrorMessage.value = '';
+
+  try {
+    persons.value = await getPersons();
+  } catch {
+    personsErrorMessage.value = 'Nao foi possivel carregar pessoas.';
+  } finally {
+    isLoadingPersons.value = false;
+  }
+}
+
 function handleLogout() {
   localStorage.removeItem(MOCK_AUTH_STORAGE_KEY);
   void router.push('/login');
@@ -62,6 +76,12 @@ function handleLogout() {
 
 onMounted(() => {
   void loadShoppingCategories();
+  void loadPersons();
+  window.addEventListener('polaris:persons-changed', loadPersons);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('polaris:persons-changed', loadPersons);
 });
 </script>
 
@@ -186,16 +206,45 @@ onMounted(() => {
       >
         <div :class="['flex flex-col', isContentCollapsed ? 'gap-2' : 'gap-1']">
           <div
-            v-for="person in persons"
-            :key="person"
+            v-if="isLoadingPersons"
+            :class="[
+              'text-xs text-text-muted',
+              isContentCollapsed ? 'h-8 w-8 rounded-md bg-card' : 'px-2 py-1'
+            ]"
           >
-            <SidebarButton
-              :use-random-color="true"
-              :title="person"
-              :is-collapsed="isContentCollapsed"
-              :route-to="person"
-            />
+            <span v-if="!isContentCollapsed">Carregando...</span>
           </div>
+          <div
+            v-else-if="personsErrorMessage"
+            :class="[
+              'text-xs text-text-muted',
+              isContentCollapsed ? 'h-8 w-8 rounded-md bg-card' : 'px-2 py-1'
+            ]"
+          >
+            <span v-if="!isContentCollapsed">{{ personsErrorMessage }}</span>
+          </div>
+          <div
+            v-else-if="persons.length === 0"
+            :class="[
+              'text-xs text-text-muted',
+              isContentCollapsed ? 'h-8 w-8 rounded-md bg-card' : 'px-2 py-1'
+            ]"
+          >
+            <span v-if="!isContentCollapsed">Nenhuma pessoa</span>
+          </div>
+          <template v-else>
+            <div
+              v-for="person in persons"
+              :key="person.id"
+            >
+              <SidebarButton
+                :use-random-color="true"
+                :title="person.name"
+                :is-collapsed="isContentCollapsed"
+                :route-to="`/gifts/${person.id}`"
+              />
+            </div>
+          </template>
         </div>
       </SidebarSection>
 

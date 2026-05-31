@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import { MOCK_AUTH_STORAGE_KEY } from '@/constants';
 import {
   DashboardView,
+  GiftsView,
   LoginView,
   SettingsView,
   ShoppingListView,
@@ -25,6 +26,22 @@ const routes = [
     path: '/shopping-list',
     name: 'shoppingList',
     component: ShoppingListView,
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/gifts',
+    name: 'gifts',
+    component: GiftsView,
+    meta: {
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/gifts/:personId',
+    name: 'personGifts',
+    component: GiftsView,
     meta: {
       requiresAuth: true,
     },
