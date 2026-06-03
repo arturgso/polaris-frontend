@@ -464,7 +464,7 @@ watchEffect(() => {
       />
       <div
         v-else
-        class="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),24rem))] gap-5"
+        class="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),24rem))] items-start gap-5"
       >
         <GiftCard
           v-for="gift in filteredPersonGifts"
@@ -487,7 +487,7 @@ watchEffect(() => {
       />
       <div
         v-else
-        class="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-5"
+        class="grid w-full grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] items-start gap-5"
       >
         <section
           v-for="column in filteredGiftColumns"
