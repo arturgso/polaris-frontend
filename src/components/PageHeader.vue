@@ -280,8 +280,8 @@ useClickOutside(newMenuRef, () => {
 
 <template>
   <header class="w-full border-b-2 border-border bg-surface px-4 pb-4 pt-20 sm:px-6 lg:min-h-16 lg:px-10 lg:py-3 xl:px-12">
-    <div class="mx-auto flex h-full w-full max-w-7xl flex-col gap-4 lg:grid lg:grid-cols-[minmax(10rem,1fr)_minmax(16rem,28rem)_max-content] lg:items-center">
-      <div class="flex min-w-0 flex-col gap-1">
+    <div class="mx-auto flex h-full w-full max-w-7xl flex-col gap-4 lg:relative lg:block lg:min-h-10">
+      <div class="flex min-w-0 flex-col gap-1 lg:absolute lg:left-0 lg:top-1/2 lg:max-w-[18rem] lg:-translate-y-1/2">
         <h1 class="truncate text-2xl font-bold text-text-secondary">
           {{ displayTitle }}
         </h1>
@@ -299,12 +299,12 @@ useClickOutside(newMenuRef, () => {
         type="search"
         :placeholder="pageHeaderState.searchPlaceholder"
         :icon="Search"
-        class="w-full"
+        class="w-full lg:absolute lg:left-1/2 lg:top-1/2 lg:w-[min(28rem,36vw)] lg:-translate-x-1/2 lg:-translate-y-1/2"
         @update:model-value="pageHeaderState.onSearchTermChange?.(String($event))"
       />
       <div v-else />
 
-      <div class="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
+      <div class="flex flex-wrap items-center gap-2 lg:absolute lg:right-0 lg:top-1/2 lg:-translate-y-1/2 lg:flex-nowrap lg:justify-end">
         <ShoppingFilterDropdown
           v-for="filter in pageHeaderState.filters"
           :key="filter.title"
