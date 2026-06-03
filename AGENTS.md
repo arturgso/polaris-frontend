@@ -39,4 +39,6 @@
 - Run `npm run lint` after code changes.
 - Run `npm run build` after changes that affect TypeScript types, Vue components, services, routing, or build behavior.
 - Use `npm run dev` for manual UI validation when the change affects user-facing screens.
+- Before starting `npm run dev`, always stop any previous Vite/dev-server instances for this project, especially processes holding ports `5173`, `5174`, `5175`, or any alternate port used in the current session.
+- Do not leave `npm run dev` running after validation; stop the session/process before finishing the task unless the user explicitly asks to keep it running.
 - Documentation-only changes do not require lint or build unless they also modify source files.

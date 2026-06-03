@@ -10,7 +10,7 @@ import {
   GiftForm,
   PersonForm,
 } from '@/components';
-import { usePageHeader } from '@/composables';
+import { showErrorToast, showSuccessToast, usePageHeader } from '@/composables';
 import {
   deleteGift,
   deletePerson,
@@ -282,8 +282,10 @@ async function submitGift() {
     giftToEdit.value = null;
 
     await loadGiftsPage();
+    showSuccessToast('Presente atualizado.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar o presente.';
+    showErrorToast('Nao foi possivel salvar o presente.');
   } finally {
     isSaving.value = false;
   }
@@ -301,8 +303,10 @@ async function confirmDeleteGift() {
     await deleteGift(giftToDelete.value.id);
     giftToDelete.value = null;
     await loadGiftsPage();
+    showSuccessToast('Presente deletado.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel deletar o presente.';
+    showErrorToast('Nao foi possivel deletar o presente.');
   } finally {
     isDeleting.value = false;
   }
@@ -322,8 +326,10 @@ async function submitPerson() {
 
     notifyPersonsChanged();
     await loadGiftsPage();
+    showSuccessToast('Pessoa atualizada.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar a pessoa.';
+    showErrorToast('Nao foi possivel salvar a pessoa.');
   } finally {
     isSaving.value = false;
   }
@@ -345,13 +351,16 @@ async function confirmDeletePerson() {
     notifyPersonsChanged();
 
     if (currentPersonId.value === deletedPersonId) {
+      showSuccessToast('Pessoa deletada.');
       void router.push('/gifts');
       return;
     }
 
     await loadGiftsPage();
+    showSuccessToast('Pessoa deletada.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel deletar a pessoa.';
+    showErrorToast('Nao foi possivel deletar a pessoa.');
   } finally {
     isDeleting.value = false;
   }

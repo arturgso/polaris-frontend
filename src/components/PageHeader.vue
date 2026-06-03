@@ -2,7 +2,12 @@
 import { Gift, Plus, Search, ShoppingCart, User, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useClickOutside, usePageHeader } from '../composables';
+import {
+  showErrorToast,
+  showSuccessToast,
+  useClickOutside,
+  usePageHeader,
+} from '../composables';
 import { DEFAULT_SHOPPING_ITEM_COLOR } from '../constants';
 import {
   createGift,
@@ -212,6 +217,7 @@ async function openCreation(type: CreationType) {
     activeCreationType.value = type;
   } catch {
     modalErrorMessage.value = 'Nao foi possivel carregar as opcoes.';
+    showErrorToast('Nao foi possivel carregar as opcoes.');
     activeCreationType.value = type;
   }
 }
@@ -235,8 +241,10 @@ async function submitGift() {
     });
     closeCreationModal();
     notify('polaris:gifts-changed');
+    showSuccessToast('Presente salvo.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar o presente.';
+    showErrorToast('Nao foi possivel salvar o presente.');
   } finally {
     isSaving.value = false;
   }
@@ -251,8 +259,10 @@ async function submitPerson() {
     closeCreationModal();
     notify('polaris:persons-changed');
     notify('polaris:gifts-changed');
+    showSuccessToast('Pessoa salva.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar a pessoa.';
+    showErrorToast('Nao foi possivel salvar a pessoa.');
   } finally {
     isSaving.value = false;
   }
@@ -266,8 +276,10 @@ async function submitShoppingItem() {
     await createShoppingItem(shoppingItemForm.value);
     closeCreationModal();
     notify('polaris:shopping-items-changed');
+    showSuccessToast('Item salvo.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar o item.';
+    showErrorToast('Nao foi possivel salvar o item.');
   } finally {
     isSaving.value = false;
   }

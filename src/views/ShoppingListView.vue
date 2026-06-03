@@ -9,7 +9,7 @@ import {
   ShoppingItemCard,
   ShoppingItemForm,
 } from '@/components';
-import { usePageHeader } from '@/composables';
+import { showErrorToast, showSuccessToast, usePageHeader } from '@/composables';
 import { DEFAULT_SHOPPING_ITEM_COLOR } from '@/constants';
 import {
   deleteShoppingItem,
@@ -154,8 +154,10 @@ async function submitEditedItem() {
     await updateShoppingItem(itemToEdit.value.id, itemForm.value);
     itemToEdit.value = null;
     await loadShoppingItems();
+    showSuccessToast('Item atualizado.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel atualizar o item.';
+    showErrorToast('Nao foi possivel atualizar o item.');
   } finally {
     isSaving.value = false;
   }
@@ -172,8 +174,10 @@ async function confirmDeleteItem() {
     await deleteShoppingItem(itemToDelete.value.id);
     itemToDelete.value = null;
     await loadShoppingItems();
+    showSuccessToast('Item deletado.');
   } catch {
     modalErrorMessage.value = 'Nao foi possivel deletar o item.';
+    showErrorToast('Nao foi possivel deletar o item.');
   } finally {
     isDeleting.value = false;
   }
