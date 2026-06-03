@@ -3,6 +3,7 @@ export { default as GiftCard } from './Gifts/GiftCard.vue';
 export { default as GiftCardInfo } from './Gifts/GiftCardInfo.vue';
 export { default as GiftForm } from './Gifts/GiftForm.vue';
 export { default as Layout } from './Layout.vue';
+export { default as PageHeader } from './PageHeader.vue';
 export { default as PersonForm } from './Gifts/PersonForm.vue';
 export { default as ShoppingFilterDropdown } from './shoppingList/ShoppingFilterDropdown.vue';
 export { default as ShoppingItemCard } from './shoppingList/ShoppingItemCard.vue';

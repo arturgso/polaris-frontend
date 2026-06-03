@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { Edit2, Plus, Search, Trash2, X } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { Edit2, Trash2 } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   BaseButton,
   BaseEmptyState,
   BaseModal,
-  BaseTextField,
   GiftCard,
   GiftForm,
   PersonForm,
-  ShoppingFilterDropdown,
 } from '@/components';
+import { usePageHeader } from '@/composables';
 import {
-  createGift,
-  createPerson,
   deleteGift,
   deletePerson,
   getEvents,
@@ -57,21 +54,12 @@ const modalErrorMessage = ref<string>('');
 const searchTerm = ref<string>('');
 const selectedEventIds = ref<number[]>([]);
 const selectedStatusIds = ref<number[]>([]);
-const isGiftModalOpen = ref<boolean>(false);
 const giftToEdit = ref<GiftWithPersonId | null>(null);
 const giftToDelete = ref<GiftWithPersonId | null>(null);
-const isPersonModalOpen = ref<boolean>(false);
 const personToEdit = ref<Person | null>(null);
 const personToDelete = ref<Person | null>(null);
+const { resetPageHeader, setPageHeader } = usePageHeader();
 let requestId = 0;
-
-const emptyGiftForm: GiftFormData = {
-  title: '',
-  link: '',
-  personId: 0,
-  event: '',
-  status: '',
-};
 
 const emptyPersonForm: PersonFormData = {
   name: '',
@@ -79,7 +67,13 @@ const emptyPersonForm: PersonFormData = {
   birthdayDay: '',
 };
 
-const giftForm = ref<GiftFormData>({ ...emptyGiftForm });
+const giftForm = ref<GiftFormData>({
+  title: '',
+  link: '',
+  personId: 0,
+  event: '',
+  status: '',
+});
 const personForm = ref<PersonFormData>({ ...emptyPersonForm });
 
 const currentPersonId = computed(() => {
@@ -140,26 +134,6 @@ function toGiftWithPersonId(gift: Gift, personId: number): GiftWithPersonId {
   };
 }
 
-function getInitialGiftPersonId() {
-  return currentPersonId.value ?? persons.value[0]?.id ?? 0;
-}
-
-function resetGiftForm(personId = getInitialGiftPersonId()) {
-  giftForm.value = {
-    title: '',
-    link: '',
-    personId,
-    event: events.value[0]?.name ?? '',
-    status: statuses.value[0]?.name ?? '',
-  };
-  modalErrorMessage.value = '';
-}
-
-function resetPersonForm() {
-  personForm.value = { ...emptyPersonForm };
-  modalErrorMessage.value = '';
-}
-
 function toggleFilter(filterValues: number[], value: number) {
   const currentIndex = filterValues.indexOf(value);
 
@@ -174,11 +148,6 @@ function toggleFilter(filterValues: number[], value: number) {
 function clearFilters() {
   selectedEventIds.value = [];
   selectedStatusIds.value = [];
-}
-
-function openAddGiftModal(personId = getInitialGiftPersonId()) {
-  resetGiftForm(personId);
-  isGiftModalOpen.value = true;
 }
 
 function openEditGiftModal(gift: GiftWithPersonId) {
@@ -196,11 +165,6 @@ function openEditGiftModal(gift: GiftWithPersonId) {
 function openDeleteGiftModal(gift: GiftWithPersonId) {
   modalErrorMessage.value = '';
   giftToDelete.value = gift;
-}
-
-function openAddPersonModal() {
-  resetPersonForm();
-  isPersonModalOpen.value = true;
 }
 
 function openEditPersonModal(person: Person) {
@@ -290,6 +254,12 @@ async function loadGiftsPage() {
 }
 
 async function submitGift() {
+  const gift = giftToEdit.value;
+
+  if (!gift) {
+    return;
+  }
+
   if (giftForm.value.personId === 0) {
     modalErrorMessage.value = 'Cadastre uma pessoa antes de salvar o presente.';
     return;
@@ -299,25 +269,14 @@ async function submitGift() {
   modalErrorMessage.value = '';
 
   try {
-    if (giftToEdit.value) {
-      await updateGift(giftToEdit.value.id, {
-        title: giftForm.value.title,
-        link: giftForm.value.link || undefined,
-        giftFor: giftForm.value.personId,
-        event: giftForm.value.event || undefined,
-        status: giftForm.value.status || undefined,
-      });
-      giftToEdit.value = null;
-    } else {
-      await createGift({
-        title: giftForm.value.title,
-        link: giftForm.value.link || undefined,
-        personId: giftForm.value.personId,
-        event: giftForm.value.event || undefined,
-        status: giftForm.value.status || undefined,
-      });
-      isGiftModalOpen.value = false;
-    }
+    await updateGift(gift.id, {
+      title: giftForm.value.title,
+      link: giftForm.value.link || undefined,
+      giftFor: giftForm.value.personId,
+      event: giftForm.value.event || undefined,
+      status: giftForm.value.status || undefined,
+    });
+    giftToEdit.value = null;
 
     await loadGiftsPage();
   } catch {
@@ -347,17 +306,16 @@ async function confirmDeleteGift() {
 }
 
 async function submitPerson() {
+  if (!personToEdit.value) {
+    return;
+  }
+
   isSaving.value = true;
   modalErrorMessage.value = '';
 
   try {
-    if (personToEdit.value) {
-      await updatePerson(personToEdit.value.id, toPersonPayload());
-      personToEdit.value = null;
-    } else {
-      await createPerson(toPersonPayload());
-      isPersonModalOpen.value = false;
-    }
+    await updatePerson(personToEdit.value.id, toPersonPayload());
+    personToEdit.value = null;
 
     notifyPersonsChanged();
     await loadGiftsPage();
@@ -399,6 +357,12 @@ async function confirmDeletePerson() {
 onMounted(() => {
   void loadOptions();
   void loadGiftsPage();
+  window.addEventListener('polaris:gifts-changed', loadGiftsPage);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('polaris:gifts-changed', loadGiftsPage);
+  resetPageHeader();
 });
 
 watch(
@@ -407,77 +371,38 @@ watch(
     void loadGiftsPage();
   },
 );
+
+watchEffect(() => {
+  setPageHeader({
+    title: pageTitle.value,
+    subtitle: selectedPerson.value?.birthday ? `Aniversario: ${selectedPerson.value.birthday}` : '',
+    searchTerm: searchTerm.value,
+    searchPlaceholder: 'Pesquisar',
+    filters: [
+      {
+        title: 'Eventos',
+        items: events.value,
+        selectedIds: selectedEventIds.value,
+        onToggle: (id) => toggleFilter(selectedEventIds.value, id),
+      },
+      {
+        title: 'Status',
+        items: statuses.value,
+        selectedIds: selectedStatusIds.value,
+        onToggle: (id) => toggleFilter(selectedStatusIds.value, id),
+      },
+    ],
+    hasActiveFilters: hasActiveFilters.value,
+    onSearchTermChange: (value) => {
+      searchTerm.value = value;
+    },
+    onClearFilters: clearFilters,
+  });
+});
 </script>
 
 <template>
   <div class="flex h-full flex-col gap-8">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div class="flex min-w-0 flex-col gap-2">
-        <h1 class="text-2xl font-bold text-text-secondary">
-          {{ pageTitle }}
-        </h1>
-        <p
-          v-if="selectedPerson?.birthday"
-          class="text-sm text-text-muted"
-        >
-          Aniversario: {{ selectedPerson.birthday }}
-        </p>
-      </div>
-
-      <div class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
-        <BaseTextField
-          v-model="searchTerm"
-          type="search"
-          placeholder="Pesquisar"
-          :icon="Search"
-          class="w-full sm:w-64"
-        />
-
-        <div class="flex flex-wrap items-center gap-2">
-          <ShoppingFilterDropdown
-            title="Eventos"
-            :items="events"
-            :selected-ids="selectedEventIds"
-            @toggle="toggleFilter(selectedEventIds, $event)"
-          />
-          <ShoppingFilterDropdown
-            title="Status"
-            :items="statuses"
-            :selected-ids="selectedStatusIds"
-            @toggle="toggleFilter(selectedStatusIds, $event)"
-          />
-          <BaseButton
-            v-if="hasActiveFilters"
-            variant="secondary"
-            @click="clearFilters"
-          >
-            <template #icon>
-              <X :size="16" />
-            </template>
-            Limpar
-          </BaseButton>
-          <BaseButton
-            variant="secondary"
-            @click="openAddPersonModal"
-          >
-            <template #icon>
-              <Plus :size="16" />
-            </template>
-            Pessoa
-          </BaseButton>
-          <BaseButton
-            variant="primary"
-            @click="openAddGiftModal()"
-          >
-            <template #icon>
-              <Plus :size="18" />
-            </template>
-            Presente
-          </BaseButton>
-        </div>
-      </div>
-    </div>
-
     <div
       v-if="selectedPerson"
       class="flex flex-wrap items-center gap-2 rounded-md border-2 border-border bg-card p-3"
@@ -581,14 +506,6 @@ watch(
               <button
                 type="button"
                 class="rounded-md p-1 text-text-muted transition duration-150 hover:bg-surface hover:text-text-primary"
-                aria-label="Adicionar presente"
-                @click="openAddGiftModal(column.person.id)"
-              >
-                <Plus :size="16" />
-              </button>
-              <button
-                type="button"
-                class="rounded-md p-1 text-text-muted transition duration-150 hover:bg-surface hover:text-text-primary"
                 aria-label="Editar pessoa"
                 @click="openEditPersonModal(column.person)"
               >
@@ -622,9 +539,9 @@ watch(
   </div>
 
   <BaseModal
-    :is-open="isGiftModalOpen || giftToEdit !== null"
-    :title="giftToEdit ? 'Editar presente' : 'Novo presente'"
-    @close="isGiftModalOpen = false; giftToEdit = null"
+    :is-open="giftToEdit !== null"
+    title="Editar presente"
+    @close="giftToEdit = null"
   >
     <GiftForm
       v-model="giftForm"
@@ -634,21 +551,21 @@ watch(
       :is-saving="isSaving"
       :error-message="modalErrorMessage"
       @submit="submitGift"
-      @cancel="isGiftModalOpen = false; giftToEdit = null"
+      @cancel="giftToEdit = null"
     />
   </BaseModal>
 
   <BaseModal
-    :is-open="isPersonModalOpen || personToEdit !== null"
-    :title="personToEdit ? 'Editar pessoa' : 'Nova pessoa'"
-    @close="isPersonModalOpen = false; personToEdit = null"
+    :is-open="personToEdit !== null"
+    title="Editar pessoa"
+    @close="personToEdit = null"
   >
     <PersonForm
       v-model="personForm"
       :is-saving="isSaving"
       :error-message="modalErrorMessage"
       @submit="submitPerson"
-      @cancel="isPersonModalOpen = false; personToEdit = null"
+      @cancel="personToEdit = null"
     />
   </BaseModal>
 

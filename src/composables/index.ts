@@ -1,5 +1,12 @@
 export { useClickOutside } from './useClickOutside';
 export {
+  usePageHeader,
+  type PageHeaderConfig,
+  type PageHeaderFilter,
+  type PageHeaderFilterItem,
+  type PageHeaderState,
+} from './usePageHeader';
+export {
   applyThemeSettings,
   initializeThemeSettings,
   useThemeSettings,

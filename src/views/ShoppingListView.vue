@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   BaseButton,
@@ -8,11 +8,10 @@ import {
   BaseModal,
   ShoppingItemCard,
   ShoppingItemForm,
-  ShoppingListToolbar,
 } from '@/components';
+import { usePageHeader } from '@/composables';
 import { DEFAULT_SHOPPING_ITEM_COLOR } from '@/constants';
 import {
-  createShoppingItem,
   deleteShoppingItem,
   getShoppingItemCategories,
   getShoppingItems,
@@ -34,13 +33,13 @@ const isLoading = ref<boolean>(false);
 const isSaving = ref<boolean>(false);
 const errorMessage = ref<string>('');
 const modalErrorMessage = ref<string>('');
-const isAddModalOpen = ref<boolean>(false);
 const itemToEdit = ref<ShoppingItem | null>(null);
 const itemToDelete = ref<ShoppingItem | null>(null);
 const isDeleting = ref<boolean>(false);
 const searchTerm = ref<string>('');
 const selectedCategoryIds = ref<number[]>([]);
 const selectedStatusIds = ref<number[]>([]);
+const { resetPageHeader, setPageHeader } = usePageHeader();
 let shoppingItemsRequestId = 0;
 let searchTimeoutId: ReturnType<typeof setTimeout> | undefined;
 const emptyForm: ShoppingItemFormData = {
@@ -63,6 +62,8 @@ const filteredShoppingItems = computed(() => {
     return matchesCategory && matchesStatus;
   });
 });
+
+const hasActiveFilters = computed(() => selectedCategoryIds.value.length > 0 || selectedStatusIds.value.length > 0);
 
 function getSelectedCategoryId() {
   const categoryId = route.query.categoryId;
@@ -118,20 +119,6 @@ function toggleFilter(filterValues: number[], value: number) {
   filterValues.push(value);
 }
 
-function resetForm() {
-  itemForm.value = {
-    ...emptyForm,
-    categoryId: categories.value[0]?.id ?? 0,
-    statusId: statuses.value[0]?.id ?? 0,
-  };
-  modalErrorMessage.value = '';
-}
-
-function openAddModal() {
-  resetForm();
-  isAddModalOpen.value = true;
-}
-
 function openEditModal(item: ShoppingItem) {
   itemForm.value = {
     title: item.title,
@@ -153,21 +140,6 @@ function openDeleteModal(item: ShoppingItem) {
 function clearFilters() {
   selectedCategoryIds.value = [];
   selectedStatusIds.value = [];
-}
-
-async function submitNewItem() {
-  isSaving.value = true;
-  modalErrorMessage.value = '';
-
-  try {
-    await createShoppingItem(itemForm.value);
-    isAddModalOpen.value = false;
-    await loadShoppingItems();
-  } catch {
-    modalErrorMessage.value = 'Nao foi possivel salvar o item.';
-  } finally {
-    isSaving.value = false;
-  }
 }
 
 async function submitEditedItem() {
@@ -207,6 +179,10 @@ async function confirmDeleteItem() {
   }
 }
 
+function handleShoppingItemsChanged() {
+  void loadShoppingItems();
+}
+
 onMounted(() => {
   const categoryId = getSelectedCategoryId();
 
@@ -216,12 +192,16 @@ onMounted(() => {
 
   void loadShoppingItems();
   void loadShoppingItemOptions();
+  window.addEventListener('polaris:shopping-items-changed', handleShoppingItemsChanged);
 });
 
 onUnmounted(() => {
   if (searchTimeoutId) {
     clearTimeout(searchTimeoutId);
   }
+
+  window.removeEventListener('polaris:shopping-items-changed', handleShoppingItemsChanged);
+  resetPageHeader();
 });
 
 watch(
@@ -241,23 +221,38 @@ watch(searchTerm, () => {
     void loadShoppingItems();
   }, 300);
 });
+
+watchEffect(() => {
+  setPageHeader({
+    title: 'Lista de compras',
+    searchTerm: searchTerm.value,
+    searchPlaceholder: 'Pesquisar',
+    filters: [
+      {
+        title: 'Categorias',
+        items: categories.value,
+        selectedIds: selectedCategoryIds.value,
+        onToggle: (id) => toggleFilter(selectedCategoryIds.value, id),
+      },
+      {
+        title: 'Status',
+        items: statuses.value,
+        selectedIds: selectedStatusIds.value,
+        onToggle: (id) => toggleFilter(selectedStatusIds.value, id),
+      },
+    ],
+    hasActiveFilters: hasActiveFilters.value,
+    onSearchTermChange: (value) => {
+      searchTerm.value = value;
+    },
+    onClearFilters: clearFilters,
+  });
+});
 </script>
 
 <template>
   <div class="flex h-full flex-col items-center">
     <div class="flex w-full flex-col gap-8">
-      <ShoppingListToolbar
-        v-model:search-term="searchTerm"
-        :categories="categories"
-        :statuses="statuses"
-        :selected-category-ids="selectedCategoryIds"
-        :selected-status-ids="selectedStatusIds"
-        @toggle-category="toggleFilter(selectedCategoryIds, $event)"
-        @toggle-status="toggleFilter(selectedStatusIds, $event)"
-        @clear-filters="clearFilters"
-        @add="openAddModal"
-      />
-
       <BaseEmptyState
         v-if="isLoading"
         message="Carregando lista de compras..."
@@ -306,22 +301,6 @@ watch(searchTerm, () => {
       </div>
     </div>
   </div>
-
-  <BaseModal
-    :is-open="isAddModalOpen"
-    title="Novo item"
-    @close="isAddModalOpen = false"
-  >
-    <ShoppingItemForm
-      v-model="itemForm"
-      :categories="categories"
-      :statuses="statuses"
-      :is-saving="isSaving"
-      :error-message="modalErrorMessage"
-      @submit="submitNewItem"
-      @cancel="isAddModalOpen = false"
-    />
-  </BaseModal>
 
   <BaseModal
     :is-open="itemToEdit !== null"

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Monitor, Moon, Settings, Sun } from 'lucide-vue-next';
+import { Monitor, Moon, Sun } from 'lucide-vue-next';
 import type { FunctionalComponent } from 'vue';
 import type { LucideProps } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { useThemeSettings, type ThemeMode } from '@/composables';
+import { computed, onUnmounted, watchEffect } from 'vue';
+import { usePageHeader, useThemeSettings, type ThemeMode } from '@/composables';
 
 const themeOptions: Array<{
   mode: ThemeMode;
@@ -38,6 +38,7 @@ const {
   updateMode,
   updateAmoled,
 } = useThemeSettings();
+const { resetPageHeader, setPageHeader } = usePageHeader();
 
 const resolvedThemeLabel = computed(() => {
   const labels = {
@@ -58,23 +59,21 @@ function handleAmoledChange(event: Event) {
 
   updateAmoled(target.checked);
 }
+
+onUnmounted(() => {
+  resetPageHeader();
+});
+
+watchEffect(() => {
+  setPageHeader({
+    title: 'Aparencia',
+    subtitle: 'Ajuste o tema visual do Polaris. As preferencias ficam salvas neste navegador.',
+  });
+});
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
-    <header class="flex flex-col gap-2">
-      <div class="flex items-center gap-2 text-accent">
-        <Settings :size="22" />
-        <span class="text-sm font-semibold uppercase">Configuracoes</span>
-      </div>
-      <h1 class="text-2xl font-bold text-text-primary">
-        Aparencia
-      </h1>
-      <p class="max-w-2xl text-sm text-text-secondary">
-        Ajuste o tema visual do Polaris. As preferencias ficam salvas neste navegador.
-      </p>
-    </header>
-
     <section class="rounded-md border-2 border-border bg-card p-5 sm:p-6">
       <div class="flex flex-col gap-1">
         <h2 class="text-lg font-bold text-text-primary">

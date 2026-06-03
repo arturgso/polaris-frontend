@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
 import { ShoppingCart, TrendingUp } from 'lucide-vue-next';
 import { BaseButton, BaseEmptyState, DashboardCard } from '@/components';
+import { usePageHeader } from '@/composables';
 import { dashboardGiftCardMock } from '@/mocks';
 import { getDashboardMetrics, getRecentShoppingItems } from '@/services';
 import type { DashboardCardProps, DashboardMetricsDTO, ShoppingItem } from '@/types';
@@ -12,6 +13,7 @@ const isLoadingMetrics = ref<boolean>(false);
 const isLoadingRecentItems = ref<boolean>(false);
 const metricsErrorMessage = ref<string>('');
 const recentItemsErrorMessage = ref<string>('');
+const { resetPageHeader, setPageHeader } = usePageHeader();
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -74,15 +76,21 @@ function loadDashboardData() {
 onMounted(() => {
   loadDashboardData();
 });
+
+onUnmounted(() => {
+  resetPageHeader();
+});
+
+watchEffect(() => {
+  setPageHeader({
+    title: 'Dashboard',
+  });
+});
 </script>
 
 <template>
   <div class="flex h-full flex-col items-center">
     <div class="flex w-full flex-col gap-8">
-      <h1 class="text-2xl font-bold text-text-secondary">
-        Dashboard
-      </h1>
-
       <div
         v-if="metricsErrorMessage"
         class="flex w-full items-center justify-between gap-4 rounded-md border-2 border-border bg-card p-6"

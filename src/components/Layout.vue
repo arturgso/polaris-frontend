@@ -2,7 +2,7 @@
 import { Menu } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { Sidebar } from '@/components';
+import { PageHeader, Sidebar } from '@/components';
 
 const isSidebarCollapsed = ref<boolean>(false);
 const isDrawerOpen = ref<boolean>(false);
@@ -65,11 +65,14 @@ watch(
       @close="isDrawerOpen = false"
     />
     <div
-      class="min-h-dvh px-4 pb-8 pt-20 transition-all sm:px-6 lg:px-10 lg:py-8 xl:px-12"
-      :class="isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-72'"
+      class="min-h-dvh pb-8 transition-all"
+      :class="isSidebarCollapsed ? 'lg:ml-14' : 'lg:ml-64'"
     >
-      <div class="mx-auto w-full max-w-7xl">
-        <slot />
+      <PageHeader />
+      <div class="px-4 pt-8 sm:px-6 lg:px-10 xl:px-12">
+        <div class="mx-auto w-full max-w-7xl">
+          <slot />
+        </div>
       </div>
     </div>
   </main>
