@@ -4,6 +4,7 @@ export {
   getRecentShoppingItems,
 } from './dashboard';
 export {
+  createEvent,
   getEvents,
 } from './events';
 export {
@@ -24,6 +25,7 @@ export {
   updatePerson,
 } from './persons';
 export {
+  createShoppingItemCategory,
   createShoppingItem,
   deleteShoppingItem,
   getShoppingItemCategories,

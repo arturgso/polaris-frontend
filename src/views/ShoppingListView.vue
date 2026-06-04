@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Trash2 } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import {
   BaseButton,
   BaseEmptyState,
@@ -28,6 +28,7 @@ const shoppingItems = ref<ShoppingItem[]>([]);
 const categories = ref<ShoppingItemCategory[]>([]);
 const statuses = ref<ShoppingItemStatus[]>([]);
 const route = useRoute();
+const router = useRouter();
 const isLoading = ref<boolean>(false);
 const isSaving = ref<boolean>(false);
 const errorMessage = ref<string>('');
@@ -51,36 +52,52 @@ const emptyForm: ShoppingItemFormData = {
 const itemForm = ref<ShoppingItemFormData>({ ...emptyForm });
 
 const filteredShoppingItems = computed(() => {
-  return shoppingItems.value.filter((item) => {
-    const matchesCategory = selectedCategoryIds.value.length === 0
-      || selectedCategoryIds.value.includes(item.category.id);
-    const matchesStatus = selectedStatusIds.value.length === 0
-      || selectedStatusIds.value.includes(item.status.id);
-
-    return matchesCategory && matchesStatus;
-  });
+  return shoppingItems.value;
 });
 
 const hasActiveFilters = computed(() => selectedCategoryIds.value.length > 0 || selectedStatusIds.value.length > 0);
 
-function getSelectedCategoryId() {
-  const categoryId = route.query.categoryId;
-  const normalizedCategoryId = Array.isArray(categoryId) ? categoryId[0] : categoryId;
-  const parsedCategoryId = Number(normalizedCategoryId);
+function getQueryString(value: unknown) {
+  const queryValue = Array.isArray(value) ? value[0] : value;
 
-  return Number.isFinite(parsedCategoryId) && parsedCategoryId > 0 ? parsedCategoryId : undefined;
+  return typeof queryValue === 'string' && queryValue ? queryValue : undefined;
+}
+
+function getSelectedTag(items: Array<{ id: number; tag: string }>, ids: number[], fallbackTag?: string) {
+  const selectedId = ids.length === 1 ? ids[0] : undefined;
+
+  return items.find((item) => item.id === selectedId)?.tag ?? fallbackTag;
+}
+
+function getShoppingItemFilters() {
+  const title = searchTerm.value.trim();
+
+  return {
+    title: title || undefined,
+    tag: getSelectedTag(categories.value, selectedCategoryIds.value, getQueryString(route.query.tag)),
+    status: getSelectedTag(statuses.value, selectedStatusIds.value, getQueryString(route.query.status)),
+  };
+}
+
+function syncFiltersFromRoute() {
+  const categoryTag = getQueryString(route.query.tag);
+  const statusTag = getQueryString(route.query.status);
+  const categoryId = categories.value.find((category) => category.tag === categoryTag)?.id;
+  const statusId = statuses.value.find((status) => status.tag === statusTag)?.id;
+
+  selectedCategoryIds.value = categoryId ? [categoryId] : [];
+  selectedStatusIds.value = statusId ? [statusId] : [];
 }
 
 async function loadShoppingItems() {
   const currentRequestId = shoppingItemsRequestId + 1;
-  const title = searchTerm.value.trim();
 
   shoppingItemsRequestId = currentRequestId;
   isLoading.value = true;
   errorMessage.value = '';
 
   try {
-    const loadedShoppingItems = await getShoppingItems(title ? { title } : {});
+    const loadedShoppingItems = await getShoppingItems(getShoppingItemFilters());
 
     if (currentRequestId === shoppingItemsRequestId) {
       shoppingItems.value = loadedShoppingItems;
@@ -104,17 +121,28 @@ async function loadShoppingItemOptions() {
 
   categories.value = loadedCategories;
   statuses.value = loadedStatuses;
+  syncFiltersFromRoute();
 }
 
 function toggleFilter(filterValues: number[], value: number) {
-  const currentIndex = filterValues.indexOf(value);
+  const isCategoryFilter = filterValues === selectedCategoryIds.value;
+  const queryKey = isCategoryFilter ? 'tag' : 'status';
+  const selectedOption = (isCategoryFilter ? categories.value : statuses.value).find((item) => item.id === value);
 
-  if (currentIndex >= 0) {
-    filterValues.splice(currentIndex, 1);
+  if (!selectedOption) {
     return;
   }
 
-  filterValues.push(value);
+  const currentTag = getQueryString(route.query[queryKey]);
+
+  void router.replace({
+    path: '/shopping-list',
+    query: {
+      ...route.query,
+      categoryId: undefined,
+      [queryKey]: currentTag === selectedOption.tag ? undefined : selectedOption.tag,
+    },
+  });
 }
 
 function openEditModal(item: ShoppingItem) {
@@ -135,8 +163,15 @@ function openDeleteModal(item: ShoppingItem) {
 }
 
 function clearFilters() {
-  selectedCategoryIds.value = [];
-  selectedStatusIds.value = [];
+  void router.replace({
+    path: '/shopping-list',
+    query: {
+      ...route.query,
+      categoryId: undefined,
+      tag: undefined,
+      status: undefined,
+    },
+  });
 }
 
 async function submitEditedItem() {
@@ -184,16 +219,14 @@ function handleShoppingItemsChanged() {
   void loadShoppingItems();
 }
 
+function handleShoppingCategoriesChanged() {
+  void loadShoppingItemOptions();
+}
+
 onMounted(() => {
-  const categoryId = getSelectedCategoryId();
-
-  if (categoryId) {
-    selectedCategoryIds.value = [categoryId];
-  }
-
-  void loadShoppingItems();
   void loadShoppingItemOptions();
   window.addEventListener('polaris:shopping-items-changed', handleShoppingItemsChanged);
+  window.addEventListener('polaris:shopping-categories-changed', handleShoppingCategoriesChanged);
 });
 
 onUnmounted(() => {
@@ -202,16 +235,14 @@ onUnmounted(() => {
   }
 
   window.removeEventListener('polaris:shopping-items-changed', handleShoppingItemsChanged);
+  window.removeEventListener('polaris:shopping-categories-changed', handleShoppingCategoriesChanged);
   resetPageHeader();
 });
 
-watch(
-  () => route.query.categoryId,
-  () => {
-    const categoryId = getSelectedCategoryId();
-    selectedCategoryIds.value = categoryId ? [categoryId] : [];
-  },
-);
+watch(() => route.query, () => {
+  syncFiltersFromRoute();
+  void loadShoppingItems();
+}, { immediate: true });
 
 watch(searchTerm, () => {
   if (searchTimeoutId) {

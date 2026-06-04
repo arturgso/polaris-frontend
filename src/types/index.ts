@@ -9,6 +9,7 @@ export type {
   GiftFormData,
   GiftStatus,
   GiftWithPersonId,
+  NewEventDTO,
   NewGiftDTO,
   NewPersonDTO,
   Person,

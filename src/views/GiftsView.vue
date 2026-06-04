@@ -106,8 +106,16 @@ function getQueryId(value: unknown) {
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : undefined;
 }
 
-function getSelectedId(ids: number[]) {
-  return ids.length === 1 ? ids[0] : undefined;
+function getQueryString(value: unknown) {
+  const queryValue = Array.isArray(value) ? value[0] : value;
+
+  return typeof queryValue === 'string' && queryValue ? queryValue : undefined;
+}
+
+function getSelectedTag(items: Array<{ id: number; tag: string }>, ids: number[], fallbackTag?: string) {
+  const selectedId = ids.length === 1 ? ids[0] : undefined;
+
+  return items.find((item) => item.id === selectedId)?.tag ?? fallbackTag;
 }
 
 function getGiftFilters(): GiftFilters {
@@ -115,27 +123,38 @@ function getGiftFilters(): GiftFilters {
 
   return {
     title: title || undefined,
-    eventId: getSelectedId(selectedEventIds.value),
-    statusId: getSelectedId(selectedStatusIds.value),
+    event: getSelectedTag(events.value, selectedEventIds.value, getQueryString(route.query.event)),
+    status: getSelectedTag(statuses.value, selectedStatusIds.value, getQueryString(route.query.status)),
   };
 }
 
 function toggleFilter(filterValues: number[], value: number) {
-  const queryKey = filterValues === selectedEventIds.value ? 'eventId' : 'statusId';
-  const currentId = getSelectedId(filterValues);
+  const isEventFilter = filterValues === selectedEventIds.value;
+  const queryKey = isEventFilter ? 'event' : 'status';
+  const selectedOption = (isEventFilter ? events.value : statuses.value).find((item) => item.id === value);
+
+  if (!selectedOption) {
+    return;
+  }
+
+  const currentTag = getQueryString(route.query[queryKey]);
 
   void router.replace({
     path: '/gifts',
     query: {
       ...route.query,
-      [queryKey]: currentId === value ? undefined : value,
+      eventId: undefined,
+      statusId: undefined,
+      [queryKey]: currentTag === selectedOption.tag ? undefined : selectedOption.tag,
     },
   });
 }
 
 function syncFiltersFromRoute() {
-  const eventId = getQueryId(route.query.eventId);
-  const statusId = getQueryId(route.query.statusId);
+  const eventTag = getQueryString(route.query.event);
+  const statusTag = getQueryString(route.query.status);
+  const eventId = events.value.find((event) => event.tag === eventTag)?.id;
+  const statusId = statuses.value.find((status) => status.tag === statusTag)?.id;
 
   selectedEventIds.value = eventId ? [eventId] : [];
   selectedStatusIds.value = statusId ? [statusId] : [];
@@ -146,6 +165,8 @@ function clearFilters() {
     path: '/gifts',
     query: {
       ...route.query,
+      event: undefined,
+      status: undefined,
       eventId: undefined,
       statusId: undefined,
     },
@@ -157,8 +178,8 @@ function openEditGiftModal(gift: GiftWithPersonId) {
     title: gift.title,
     link: gift.link ?? '',
     personId: gift.personId,
-    event: gift.event ?? events.value[0]?.name ?? '',
-    status: gift.status ?? statuses.value[0]?.name ?? '',
+    event: gift.event ?? events.value[0]?.tag ?? '',
+    status: gift.status ?? statuses.value[0]?.tag ?? '',
   };
   modalErrorMessage.value = '';
   giftToEdit.value = gift;
@@ -204,6 +225,7 @@ async function loadOptions() {
 
   events.value = loadedEvents;
   statuses.value = loadedStatuses;
+  syncFiltersFromRoute();
 }
 
 async function loadGiftsPage() {
@@ -369,6 +391,7 @@ async function confirmDeletePerson() {
 onMounted(() => {
   void loadOptions();
   window.addEventListener('polaris:gifts-changed', loadGiftsPage);
+  window.addEventListener('polaris:events-changed', loadOptions);
 });
 
 onUnmounted(() => {
@@ -377,6 +400,7 @@ onUnmounted(() => {
   }
 
   window.removeEventListener('polaris:gifts-changed', loadGiftsPage);
+  window.removeEventListener('polaris:events-changed', loadOptions);
   resetPageHeader();
 });
 
@@ -493,6 +517,8 @@ watchEffect(() => {
         >
           <GiftCard
             :gift="gift"
+            :events="events"
+            :statuses="statuses"
             @edit="openEditGiftModal(gift)"
             @delete="openDeleteGiftModal(gift)"
           />
@@ -559,6 +585,8 @@ watchEffect(() => {
           >
             <GiftCard
               :gift="gift"
+              :events="events"
+              :statuses="statuses"
               @edit="openEditGiftModal(gift)"
               @delete="openDeleteGiftModal(gift)"
             />

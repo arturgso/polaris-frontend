@@ -4,13 +4,15 @@ export type ShoppingItemCategoryName = 'TECH' | 'HEALTH' | 'MAKEUP' | 'OTHER';
 
 export interface ShoppingItemStatus {
   id: number;
-  name: ShoppingItemStatusName;
+  tag: ShoppingItemStatusName;
+  name: string;
   color: string;
 }
 
 export interface ShoppingItemCategory {
   id: number;
-  name: ShoppingItemCategoryName;
+  tag: ShoppingItemCategoryName;
+  name: string;
   color: string;
   createdAt?: string;
 }
@@ -43,12 +45,12 @@ export interface UpdateShoppingItemDTO {
 }
 
 export interface NewShoppingItemCategoryDTO {
-  name: ShoppingItemCategoryName;
-  color: string;
+  name: string;
+  color?: string;
 }
 
 export interface ShoppingItemFilters {
   title?: string;
-  statusId?: number;
-  categoryId?: number;
+  status?: string;
+  tag?: string;
 }

@@ -36,8 +36,8 @@ export interface GiftWithPersonId extends Gift {
 }
 
 export interface GiftFilters {
-  statusId?: number;
-  eventId?: number;
+  status?: string;
+  event?: string;
   title?: string;
   link?: string;
 }
@@ -60,12 +60,19 @@ export interface UpdateGiftDTO {
 
 export interface GiftStatus {
   id: number;
+  tag: string;
   name: string;
   color?: string;
 }
 
 export interface Event {
   id: number;
+  tag: string;
+  name: string;
+  color?: string;
+}
+
+export interface NewEventDTO {
   name: string;
   color?: string;
 }

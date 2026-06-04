@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { EllipsisVertical, ExternalLink, Pencil, Trash2 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useClickOutside } from '@/composables';
-import type { GiftWithPersonId } from '@/types';
+import type { Event, GiftStatus, GiftWithPersonId } from '@/types';
 
-defineProps<{
+const props = defineProps<{
   gift: GiftWithPersonId;
+  events: Event[];
+  statuses: GiftStatus[];
 }>();
 
 const emit = defineEmits<{
@@ -15,6 +17,16 @@ const emit = defineEmits<{
 
 const isMenuOpen = ref<boolean>(false);
 const menuRef = ref<HTMLElement | null>(null);
+const eventName = computed(() => getOptionName(props.events, props.gift.event));
+const statusName = computed(() => getOptionName(props.statuses, props.gift.status));
+
+function getOptionName(items: Array<{ tag: string; name: string }>, tag?: string) {
+  if (!tag) {
+    return 'Nao informado';
+  }
+
+  return items.find((item) => item.tag === tag)?.name ?? tag;
+}
 
 function handleEdit(gift: GiftWithPersonId) {
   emit('edit', gift);
@@ -72,10 +84,10 @@ useClickOutside(menuRef, () => {
 
     <div class="flex flex-wrap items-center gap-2 pr-7">
       <span class="w-fit rounded-sm border border-border bg-surface px-2 py-1 text-[11px] font-semibold uppercase text-text-secondary">
-        {{ gift.event || 'Nao informado' }}
+        {{ eventName }}
       </span>
       <span class="w-fit rounded-sm border border-border bg-surface px-2 py-1 text-[10px] font-semibold uppercase text-text-secondary">
-        {{ gift.status || 'Nao informado' }}
+        {{ statusName }}
       </span>
     </div>
 

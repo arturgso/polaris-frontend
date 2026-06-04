@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Gift, Plus, Search, ShoppingCart, User, X } from 'lucide-vue-next';
+import { CalendarDays, Gift, Plus, Search, ShoppingCart, Tags, User, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import {
@@ -9,9 +9,11 @@ import {
   usePageHeader,
 } from '../composables';
 import {
+  createEvent,
   createGift,
   createPerson,
   createShoppingItem,
+  createShoppingItemCategory,
   getEvents,
   getGiftStatuses,
   getPersons,
@@ -22,7 +24,9 @@ import type {
   Event,
   GiftFormData,
   GiftStatus,
+  NewEventDTO,
   NewPersonDTO,
+  NewShoppingItemCategoryDTO,
   Person,
   PersonFormData,
   ShoppingItemCategory,
@@ -37,7 +41,12 @@ import BaseButton from './ui/BaseButton.vue';
 import BaseModal from './ui/BaseModal.vue';
 import BaseTextField from './ui/BaseTextField.vue';
 
-type CreationType = 'gift' | 'person' | 'shoppingItem';
+type CreationType = 'gift' | 'person' | 'shoppingItem' | 'shoppingCategory' | 'event';
+
+interface NameColorFormData {
+  name: string;
+  color: string;
+}
 
 const route = useRoute();
 const { pageHeaderState } = usePageHeader();
@@ -74,9 +83,16 @@ const emptyShoppingItemForm: ShoppingItemFormData = {
   statusId: 0,
 };
 
+const emptyNameColorForm: NameColorFormData = {
+  name: '',
+  color: '',
+};
+
 const giftForm = ref<GiftFormData>({ ...emptyGiftForm });
 const personForm = ref<PersonFormData>({ ...emptyPersonForm });
 const shoppingItemForm = ref<ShoppingItemFormData>({ ...emptyShoppingItemForm });
+const shoppingCategoryForm = ref<NameColorFormData>({ ...emptyNameColorForm });
+const eventForm = ref<NameColorFormData>({ ...emptyNameColorForm });
 
 const creationOptions = [
   {
@@ -94,6 +110,16 @@ const creationOptions = [
     label: 'Item de compra',
     icon: ShoppingCart,
   },
+  {
+    type: 'shoppingCategory' as const,
+    label: 'Categoria de compra',
+    icon: Tags,
+  },
+  {
+    type: 'event' as const,
+    label: 'Evento',
+    icon: CalendarDays,
+  },
 ];
 
 const modalTitle = computed(() => {
@@ -107,6 +133,14 @@ const modalTitle = computed(() => {
 
   if (activeCreationType.value === 'shoppingItem') {
     return 'Novo item';
+  }
+
+  if (activeCreationType.value === 'shoppingCategory') {
+    return 'Nova categoria';
+  }
+
+  if (activeCreationType.value === 'event') {
+    return 'Novo evento';
   }
 
   return 'Novo';
@@ -138,8 +172,8 @@ function resetGiftForm() {
     title: '',
     link: '',
     personId: persons.value[0]?.id ?? 0,
-    event: events.value[0]?.name ?? '',
-    status: giftStatuses.value[0]?.name ?? '',
+    event: events.value[0]?.tag ?? '',
+    status: giftStatuses.value[0]?.tag ?? '',
   };
 }
 
@@ -155,6 +189,14 @@ function resetShoppingItemForm() {
   };
 }
 
+function resetShoppingCategoryForm() {
+  shoppingCategoryForm.value = { ...emptyNameColorForm };
+}
+
+function resetEventForm() {
+  eventForm.value = { ...emptyNameColorForm };
+}
+
 function closeCreationModal() {
   activeCreationType.value = null;
   modalErrorMessage.value = '';
@@ -166,6 +208,25 @@ function toPersonPayload(): NewPersonDTO {
     birthdayMonth: personForm.value.birthdayMonth === '' ? undefined : personForm.value.birthdayMonth,
     birthdayDay: personForm.value.birthdayDay === '' ? undefined : personForm.value.birthdayDay,
   };
+}
+
+function toNameColorPayload(form: NameColorFormData): NewEventDTO | NewShoppingItemCategoryDTO {
+  const color = form.color.trim();
+
+  return {
+    name: form.name,
+    color: color || undefined,
+  };
+}
+
+function updateColor(form: NameColorFormData, event: globalThis.Event) {
+  const target = event.target;
+
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  form.color = target.value;
 }
 
 function notify(eventName: string) {
@@ -211,6 +272,14 @@ async function openCreation(type: CreationType) {
     if (type === 'shoppingItem') {
       await loadShoppingOptions();
       resetShoppingItemForm();
+    }
+
+    if (type === 'shoppingCategory') {
+      resetShoppingCategoryForm();
+    }
+
+    if (type === 'event') {
+      resetEventForm();
     }
 
     activeCreationType.value = type;
@@ -279,6 +348,42 @@ async function submitShoppingItem() {
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar o item.';
     showErrorToast('Nao foi possivel salvar o item.');
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+async function submitShoppingCategory() {
+  isSaving.value = true;
+  modalErrorMessage.value = '';
+
+  try {
+    await createShoppingItemCategory(toNameColorPayload(shoppingCategoryForm.value));
+    closeCreationModal();
+    notify('polaris:shopping-categories-changed');
+    notify('polaris:shopping-items-changed');
+    showSuccessToast('Categoria salva.');
+  } catch {
+    modalErrorMessage.value = 'Nao foi possivel salvar a categoria.';
+    showErrorToast('Nao foi possivel salvar a categoria.');
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+async function submitEvent() {
+  isSaving.value = true;
+  modalErrorMessage.value = '';
+
+  try {
+    await createEvent(toNameColorPayload(eventForm.value));
+    closeCreationModal();
+    notify('polaris:events-changed');
+    notify('polaris:gifts-changed');
+    showSuccessToast('Evento salvo.');
+  } catch {
+    modalErrorMessage.value = 'Nao foi possivel salvar o evento.';
+    showErrorToast('Nao foi possivel salvar o evento.');
   } finally {
     isSaving.value = false;
   }
@@ -426,5 +531,113 @@ useClickOutside(newMenuRef, () => {
       @submit="submitShoppingItem"
       @cancel="closeCreationModal"
     />
+
+    <form
+      v-else-if="activeCreationType === 'shoppingCategory'"
+      class="flex flex-col gap-4"
+      @submit.prevent="submitShoppingCategory"
+    >
+      <BaseTextField
+        :model-value="shoppingCategoryForm.name"
+        label="Nome"
+        required
+        @update:model-value="shoppingCategoryForm.name = String($event)"
+      />
+      <div class="flex items-end gap-3">
+        <BaseTextField
+          :model-value="shoppingCategoryForm.color"
+          label="Cor"
+          placeholder="#22c55e"
+          class="flex-1"
+          @update:model-value="shoppingCategoryForm.color = String($event)"
+        />
+        <label class="flex size-10 shrink-0 cursor-pointer rounded-md border-2 border-border bg-bg p-1 transition duration-150 hover:border-accent">
+          <span class="sr-only">Selecionar cor da categoria</span>
+          <input
+            :value="shoppingCategoryForm.color || '#22c55e'"
+            type="color"
+            class="size-full cursor-pointer rounded-sm border-0 bg-transparent p-0"
+            @input="updateColor(shoppingCategoryForm, $event)"
+          >
+        </label>
+      </div>
+      <p
+        v-if="modalErrorMessage"
+        class="text-sm text-text-secondary"
+      >
+        {{ modalErrorMessage }}
+      </p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <BaseButton
+          type="button"
+          variant="secondary"
+          :disabled="isSaving"
+          @click="closeCreationModal"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="isSaving"
+        >
+          {{ isSaving ? 'Salvando...' : 'Salvar' }}
+        </BaseButton>
+      </div>
+    </form>
+
+    <form
+      v-else-if="activeCreationType === 'event'"
+      class="flex flex-col gap-4"
+      @submit.prevent="submitEvent"
+    >
+      <BaseTextField
+        :model-value="eventForm.name"
+        label="Nome"
+        required
+        @update:model-value="eventForm.name = String($event)"
+      />
+      <div class="flex items-end gap-3">
+        <BaseTextField
+          :model-value="eventForm.color"
+          label="Cor"
+          placeholder="#22c55e"
+          class="flex-1"
+          @update:model-value="eventForm.color = String($event)"
+        />
+        <label class="flex size-10 shrink-0 cursor-pointer rounded-md border-2 border-border bg-bg p-1 transition duration-150 hover:border-accent">
+          <span class="sr-only">Selecionar cor do evento</span>
+          <input
+            :value="eventForm.color || '#22c55e'"
+            type="color"
+            class="size-full cursor-pointer rounded-sm border-0 bg-transparent p-0"
+            @input="updateColor(eventForm, $event)"
+          >
+        </label>
+      </div>
+      <p
+        v-if="modalErrorMessage"
+        class="text-sm text-text-secondary"
+      >
+        {{ modalErrorMessage }}
+      </p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <BaseButton
+          type="button"
+          variant="secondary"
+          :disabled="isSaving"
+          @click="closeCreationModal"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="isSaving"
+        >
+          {{ isSaving ? 'Salvando...' : 'Salvar' }}
+        </BaseButton>
+      </div>
+    </form>
   </BaseModal>
 </template>

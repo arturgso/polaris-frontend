@@ -94,10 +94,14 @@ onMounted(() => {
   void loadPersons();
   void loadEvents();
   window.addEventListener('polaris:persons-changed', loadPersons);
+  window.addEventListener('polaris:shopping-categories-changed', loadShoppingCategories);
+  window.addEventListener('polaris:events-changed', loadEvents);
 });
 
 onUnmounted(() => {
   window.removeEventListener('polaris:persons-changed', loadPersons);
+  window.removeEventListener('polaris:shopping-categories-changed', loadShoppingCategories);
+  window.removeEventListener('polaris:events-changed', loadEvents);
 });
 </script>
 
@@ -206,7 +210,7 @@ onUnmounted(() => {
                 :title="category.name"
                 :color="category.color"
                 :is-collapsed="isContentCollapsed"
-                :route-to="{ path: '/shopping-list', query: { categoryId: category.id } }"
+                :route-to="{ path: '/shopping-list', query: { tag: category.tag } }"
               />
             </div>
           </template>
@@ -308,7 +312,7 @@ onUnmounted(() => {
                 :title="event.name"
                 :color="event.color"
                 :is-collapsed="isContentCollapsed"
-                :route-to="{ path: '/gifts', query: { eventId: event.id } }"
+                :route-to="{ path: '/gifts', query: { event: event.tag } }"
               />
             </div>
           </template>

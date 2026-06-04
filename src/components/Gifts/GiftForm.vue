@@ -31,12 +31,12 @@ function toSelectOptions(items: Array<{ id: number; name: string }>) {
   }));
 }
 
-function getOptionName(items: Array<{ id: number; name: string }>, id: number) {
-  return items.find((item) => item.id === id)?.name ?? '';
+function getOptionTag(items: Array<{ id: number; tag: string }>, id: number) {
+  return items.find((item) => item.id === id)?.tag ?? '';
 }
 
-function getOptionId(items: Array<{ id: number; name: string }>, name: string) {
-  return items.find((item) => item.name === name)?.id ?? 0;
+function getOptionId(items: Array<{ id: number; tag: string }>, tag: string) {
+  return items.find((item) => item.tag === tag)?.id ?? 0;
 }
 </script>
 
@@ -69,13 +69,13 @@ function getOptionId(items: Array<{ id: number; name: string }>, name: string) {
         :model-value="getOptionId(events, modelValue.event)"
         label="Evento"
         :options="toSelectOptions(events)"
-        @update:model-value="updateField('event', getOptionName(events, $event))"
+        @update:model-value="updateField('event', getOptionTag(events, $event))"
       />
       <BaseSelect
         :model-value="getOptionId(statuses, modelValue.status)"
         label="Status"
         :options="toSelectOptions(statuses)"
-        @update:model-value="updateField('status', getOptionName(statuses, $event))"
+        @update:model-value="updateField('status', getOptionTag(statuses, $event))"
       />
     </div>
     <p

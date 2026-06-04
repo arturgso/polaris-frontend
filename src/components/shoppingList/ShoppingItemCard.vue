@@ -15,7 +15,7 @@ const emit = defineEmits<{
 
 const isMenuOpen = ref<boolean>(false);
 const menuRef = ref<HTMLElement | null>(null);
-const isMuted = computed(() => props.item.status.name === 'BOUGHT' || props.item.status.name === 'CANCELED');
+const isMuted = computed(() => props.item.status.tag === 'BOUGHT' || props.item.status.tag === 'CANCELED');
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
