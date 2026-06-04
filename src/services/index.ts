@@ -1,5 +1,15 @@
 export { api } from './api';
 export {
+  login,
+  signup,
+} from './auth';
+export {
+  clearAuthSession,
+  getAuthSession,
+  hasAuthSession,
+  saveAuthSession,
+} from './authSession';
+export {
   getDashboardMetrics,
   getRecentShoppingItems,
 } from './dashboard';

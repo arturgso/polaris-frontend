@@ -2,10 +2,9 @@
 import { Gift, LayoutDashboard, LogOut, Settings, ShoppingCart, Sidebar } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { MOCK_AUTH_STORAGE_KEY } from '@/constants';
-import { getEvents, getPersons, getShoppingItemCategories } from '@/services';
-import type { Event, Person, ShoppingItemCategory } from '@/types';
-import { Divider, SidebarButton, SidebarSection } from '@/components/ui/sidebar';
+import { clearAuthSession, getEvents, getPersons, getShoppingItemCategories } from '../../../services';
+import type { Event, Person, ShoppingItemCategory } from '../../../types';
+import { Divider, SidebarButton, SidebarSection } from './index';
 
 const router = useRouter();
 const isCollapsed = ref<boolean>(false);
@@ -85,7 +84,7 @@ async function loadEvents() {
 }
 
 function handleLogout() {
-  localStorage.removeItem(MOCK_AUTH_STORAGE_KEY);
+  clearAuthSession();
   void router.push('/login');
 }
 

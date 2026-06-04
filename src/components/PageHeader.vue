@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, Gift, Plus, Search, ShoppingCart, Tags, User, X } from 'lucide-vue-next';
+import { CalendarDays, Gift, Plus, Search, ShoppingCart, Tags, User, UserPlus, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import {
@@ -19,6 +19,7 @@ import {
   getPersons,
   getShoppingItemCategories,
   getShoppingItemStatuses,
+  signup,
 } from '../services';
 import type {
   Event,
@@ -41,11 +42,17 @@ import BaseButton from './ui/BaseButton.vue';
 import BaseModal from './ui/BaseModal.vue';
 import BaseTextField from './ui/BaseTextField.vue';
 
-type CreationType = 'gift' | 'person' | 'shoppingItem' | 'shoppingCategory' | 'event';
+type CreationType = 'gift' | 'person' | 'shoppingItem' | 'shoppingCategory' | 'event' | 'user';
 
 interface NameColorFormData {
   name: string;
   color: string;
+}
+
+interface UserFormData {
+  username: string;
+  password: string;
+  passwordConfirmation: string;
 }
 
 const route = useRoute();
@@ -88,11 +95,18 @@ const emptyNameColorForm: NameColorFormData = {
   color: '',
 };
 
+const emptyUserForm: UserFormData = {
+  username: '',
+  password: '',
+  passwordConfirmation: '',
+};
+
 const giftForm = ref<GiftFormData>({ ...emptyGiftForm });
 const personForm = ref<PersonFormData>({ ...emptyPersonForm });
 const shoppingItemForm = ref<ShoppingItemFormData>({ ...emptyShoppingItemForm });
 const shoppingCategoryForm = ref<NameColorFormData>({ ...emptyNameColorForm });
 const eventForm = ref<NameColorFormData>({ ...emptyNameColorForm });
+const userForm = ref<UserFormData>({ ...emptyUserForm });
 
 const creationOptions = [
   {
@@ -120,6 +134,11 @@ const creationOptions = [
     label: 'Evento',
     icon: CalendarDays,
   },
+  {
+    type: 'user' as const,
+    label: 'Usuario',
+    icon: UserPlus,
+  },
 ];
 
 const modalTitle = computed(() => {
@@ -141,6 +160,10 @@ const modalTitle = computed(() => {
 
   if (activeCreationType.value === 'event') {
     return 'Novo evento';
+  }
+
+  if (activeCreationType.value === 'user') {
+    return 'Novo usuario';
   }
 
   return 'Novo';
@@ -195,6 +218,10 @@ function resetShoppingCategoryForm() {
 
 function resetEventForm() {
   eventForm.value = { ...emptyNameColorForm };
+}
+
+function resetUserForm() {
+  userForm.value = { ...emptyUserForm };
 }
 
 function closeCreationModal() {
@@ -280,6 +307,10 @@ async function openCreation(type: CreationType) {
 
     if (type === 'event') {
       resetEventForm();
+    }
+
+    if (type === 'user') {
+      resetUserForm();
     }
 
     activeCreationType.value = type;
@@ -384,6 +415,42 @@ async function submitEvent() {
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar o evento.';
     showErrorToast('Nao foi possivel salvar o evento.');
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+async function submitUser() {
+  const username = userForm.value.username.trim();
+
+  if (username === '') {
+    modalErrorMessage.value = 'Informe o usuario.';
+    return;
+  }
+
+  if (userForm.value.password.length < 6) {
+    modalErrorMessage.value = 'A senha deve ter pelo menos 6 caracteres.';
+    return;
+  }
+
+  if (userForm.value.password !== userForm.value.passwordConfirmation) {
+    modalErrorMessage.value = 'A confirmacao de senha deve ser igual a senha.';
+    return;
+  }
+
+  isSaving.value = true;
+  modalErrorMessage.value = '';
+
+  try {
+    await signup({
+      username,
+      password: userForm.value.password,
+    });
+    closeCreationModal();
+    showSuccessToast('Usuario criado.');
+  } catch {
+    modalErrorMessage.value = 'Nao foi possivel criar o usuario.';
+    showErrorToast('Nao foi possivel criar o usuario.');
   } finally {
     isSaving.value = false;
   }
@@ -615,6 +682,56 @@ useClickOutside(newMenuRef, () => {
           >
         </label>
       </div>
+      <p
+        v-if="modalErrorMessage"
+        class="text-sm text-text-secondary"
+      >
+        {{ modalErrorMessage }}
+      </p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <BaseButton
+          type="button"
+          variant="secondary"
+          :disabled="isSaving"
+          @click="closeCreationModal"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="isSaving"
+        >
+          {{ isSaving ? 'Salvando...' : 'Salvar' }}
+        </BaseButton>
+      </div>
+    </form>
+
+    <form
+      v-else-if="activeCreationType === 'user'"
+      class="flex flex-col gap-4"
+      @submit.prevent="submitUser"
+    >
+      <BaseTextField
+        :model-value="userForm.username"
+        label="Usuario"
+        required
+        @update:model-value="userForm.username = String($event)"
+      />
+      <BaseTextField
+        :model-value="userForm.password"
+        label="Senha"
+        type="password"
+        required
+        @update:model-value="userForm.password = String($event)"
+      />
+      <BaseTextField
+        :model-value="userForm.passwordConfirmation"
+        label="Confirmar senha"
+        type="password"
+        required
+        @update:model-value="userForm.passwordConfirmation = String($event)"
+      />
       <p
         v-if="modalErrorMessage"
         class="text-sm text-text-secondary"

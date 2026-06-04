@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { MOCK_AUTH_STORAGE_KEY } from '@/constants';
 import {
   DashboardView,
   GiftsView,
   LoginView,
   SettingsView,
   ShoppingListView,
-} from '@/views';
+} from '../views';
+import { hasAuthSession } from '../services';
 
 const routes = [
   {
@@ -53,12 +53,8 @@ const router = createRouter({
   routes,
 });
 
-function hasMockAuthSession() {
-  return localStorage.getItem(MOCK_AUTH_STORAGE_KEY) !== null;
-}
-
 router.beforeEach((to) => {
-  const isAuthenticated = hasMockAuthSession();
+  const isAuthenticated = hasAuthSession();
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return { path: '/login' };

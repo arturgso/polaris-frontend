@@ -1,4 +1,11 @@
 export type {
+  AuthSession,
+  LoginRequest,
+  LoginResponse,
+  NewUserDTO,
+  UserDTO,
+} from './Auth';
+export type {
   DashboardCardProps,
   DashboardMetricsDTO,
 } from './Dashboard';

@@ -2,37 +2,34 @@
 import { computed, ref } from 'vue';
 import { LogIn } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
-import { BaseButton, BaseTextField } from '@/components';
-import {
-  MOCK_AUTH_EMAIL,
-  MOCK_AUTH_PASSWORD,
-  MOCK_AUTH_STORAGE_KEY,
-  type MockAuthSession,
-} from '@/constants';
+import { BaseButton, BaseTextField } from '../components';
+import { login, saveAuthSession } from '../services';
 
 const router = useRouter();
 
-const email = ref<string>('');
+const username = ref<string>('');
 const password = ref<string>('');
 const errorMessage = ref<string>('');
+const isLoading = ref<boolean>(false);
 
-const isSubmitDisabled = computed(() => email.value.trim() === '' || password.value === '');
+const isSubmitDisabled = computed(() => username.value.trim() === '' || password.value === '' || isLoading.value);
 
-function handleSubmit() {
+async function handleSubmit() {
   errorMessage.value = '';
+  isLoading.value = true;
 
-  if (email.value.trim() !== MOCK_AUTH_EMAIL || password.value !== MOCK_AUTH_PASSWORD) {
-    errorMessage.value = 'Email ou senha invalidos.';
-    return;
+  try {
+    const response = await login({
+      username: username.value.trim(),
+      password: password.value,
+    });
+    saveAuthSession(response);
+    void router.push('/');
+  } catch {
+    errorMessage.value = 'Usuario ou senha invalidos.';
+  } finally {
+    isLoading.value = false;
   }
-
-  const session: MockAuthSession = {
-    email: MOCK_AUTH_EMAIL,
-    authenticatedAt: new Date().toISOString(),
-  };
-
-  localStorage.setItem(MOCK_AUTH_STORAGE_KEY, JSON.stringify(session));
-  void router.push('/');
 }
 </script>
 
@@ -47,7 +44,7 @@ function handleSubmit() {
           Entrar
         </h1>
         <p class="text-sm text-text-secondary">
-          Acesse o painel com as credenciais mockadas.
+          Acesse o painel com seu usuario Polaris.
         </p>
       </div>
 
@@ -56,10 +53,9 @@ function handleSubmit() {
         @submit.prevent="handleSubmit"
       >
         <BaseTextField
-          v-model="email"
-          label="Email"
-          type="email"
-          placeholder="admin@polaris.local"
+          v-model="username"
+          label="Usuario"
+          placeholder="usuario"
           required
         />
 
@@ -88,7 +84,7 @@ function handleSubmit() {
           <template #icon>
             <LogIn :size="18" />
           </template>
-          Entrar
+          {{ isLoading ? 'Entrando...' : 'Entrar' }}
         </BaseButton>
       </form>
     </section>

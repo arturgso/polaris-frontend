@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
+import { clearAuthSession, getAuthSession } from './authSession';
 
 const apiIp =
   import.meta.env.VITE_API_IP ??
@@ -20,3 +21,46 @@ function getApiBaseUrl(value: string) {
 export const api = axios.create({
   baseURL: `${getApiBaseUrl(apiIp)}/api/v1`,
 });
+
+function shouldSkipAuthHeader(url?: string) {
+  return url === '/auth/login' || url === '/auth/signup';
+}
+
+function getAuthorizationHeader(token: string, type?: string) {
+  if (/^Bearer\s+/i.test(token)) {
+    return token;
+  }
+
+  return `${type || 'Bearer'} ${token}`;
+}
+
+api.interceptors.request.use((config) => {
+  if (shouldSkipAuthHeader(config.url)) {
+    return config;
+  }
+
+  const session = getAuthSession();
+
+  if (session !== null) {
+    const headers = AxiosHeaders.from(config.headers);
+    headers.set('Authorization', getAuthorizationHeader(session.token, session.type));
+    config.headers = headers;
+  }
+
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearAuthSession();
+
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.assign('/login');
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
