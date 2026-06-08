@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { BaseButton, BaseSelect, BaseTextField } from '@/components';
-import type { Event, GiftFormData, GiftStatus, Person } from '@/types';
+import type { Event, GiftFormData, GiftList, GiftStatus, Person } from '@/types';
 
 const props = defineProps<{
   modelValue: GiftFormData;
   persons: Person[];
   events: Event[];
   statuses: GiftStatus[];
+  lists?: GiftList[];
+  showList?: boolean;
   isSaving: boolean;
   errorMessage: string;
 }>();
@@ -78,6 +80,16 @@ function getOptionId(items: Array<{ id: number; tag: string }>, tag: string) {
         @update:model-value="updateField('status', getOptionTag(statuses, $event))"
       />
     </div>
+    <BaseSelect
+      v-if="showList"
+      :model-value="modelValue.giftListId"
+      label="Lista de presentes"
+      :options="[
+        { id: 0, name: 'Sem lista' },
+        ...(lists ?? []).map((list) => ({ id: list.id, name: list.title })),
+      ]"
+      @update:model-value="updateField('giftListId', $event)"
+    />
     <p
       v-if="errorMessage"
       class="text-sm text-text-secondary"

@@ -15,20 +15,36 @@ import {
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { BEATRIZ_PERSON_ID } from '../../../constants';
+import { showErrorToast, showSuccessToast } from '../../../composables';
 import {
   clearAuthSession,
+  createGiftList,
+  createShoppingList,
   createVaultGiftList,
+  deleteGiftList,
+  deleteShoppingList,
   deleteVaultGiftList,
   getEvents,
+  getGiftLists,
   getPersons,
   getShoppingItemCategories,
+  getShoppingLists,
   getVaultGiftLists,
   hasVaultSession,
   lockVault,
   unlockVault,
+  updateGiftList,
+  updateShoppingList,
   updateVaultGiftList,
 } from '../../../services';
-import type { Event, Person, ShoppingItemCategory, VaultGiftList } from '../../../types';
+import type {
+  Event,
+  GiftList,
+  Person,
+  ShoppingItemCategory,
+  ShoppingList,
+  VaultGiftList,
+} from '../../../types';
 import BaseButton from '../BaseButton.vue';
 import BaseModal from '../BaseModal.vue';
 import BaseTextField from '../BaseTextField.vue';
@@ -40,6 +56,8 @@ const isCollapsed = ref<boolean>(false);
 const shoppingCategories = ref<ShoppingItemCategory[]>([]);
 const persons = ref<Person[]>([]);
 const events = ref<Event[]>([]);
+const giftLists = ref<GiftList[]>([]);
+const shoppingLists = ref<ShoppingList[]>([]);
 const vaultGiftLists = ref<VaultGiftList[]>([]);
 const isLoadingCategories = ref<boolean>(false);
 const isLoadingPersons = ref<boolean>(false);
@@ -47,12 +65,20 @@ const isLoadingEvents = ref<boolean>(false);
 const categoriesErrorMessage = ref<string>('');
 const personsErrorMessage = ref<string>('');
 const eventsErrorMessage = ref<string>('');
+const giftListsErrorMessage = ref<string>('');
+const shoppingListsErrorMessage = ref<string>('');
 const isVaultPasswordModalOpen = ref<boolean>(false);
 const vaultPassword = ref<string>('');
 const vaultPasswordErrorMessage = ref<string>('');
 const isGiftListModalOpen = ref<boolean>(false);
 const giftListToEdit = ref<VaultGiftList | null>(null);
 const giftListName = ref<string>('');
+const listModalKind = ref<'gift' | 'shopping' | null>(null);
+const listToEdit = ref<GiftList | ShoppingList | null>(null);
+const listToDelete = ref<GiftList | ShoppingList | null>(null);
+const listTitle = ref<string>('');
+const isSavingList = ref<boolean>(false);
+const isDeletingList = ref<boolean>(false);
 
 const props = withDefaults(defineProps<{
   isDrawer?: boolean;
@@ -128,6 +154,26 @@ async function loadEvents() {
     eventsErrorMessage.value = 'Nao foi possivel carregar eventos.';
   } finally {
     isLoadingEvents.value = false;
+  }
+}
+
+async function loadGiftLists() {
+  giftListsErrorMessage.value = '';
+
+  try {
+    giftLists.value = await getGiftLists();
+  } catch {
+    giftListsErrorMessage.value = 'Nao foi possivel carregar listas.';
+  }
+}
+
+async function loadShoppingLists() {
+  shoppingListsErrorMessage.value = '';
+
+  try {
+    shoppingLists.value = await getShoppingLists();
+  } catch {
+    shoppingListsErrorMessage.value = 'Nao foi possivel carregar listas.';
   }
 }
 
@@ -221,15 +267,122 @@ function removeGiftList(list: VaultGiftList) {
   }
 }
 
+function openCreateListModal(kind: 'gift' | 'shopping') {
+  listModalKind.value = kind;
+  listToEdit.value = null;
+  listTitle.value = '';
+}
+
+function openEditListModal(kind: 'gift' | 'shopping', list: GiftList | ShoppingList) {
+  listModalKind.value = kind;
+  listToEdit.value = list;
+  listTitle.value = list.title;
+}
+
+function closeListModal() {
+  listModalKind.value = null;
+  listToEdit.value = null;
+  listTitle.value = '';
+}
+
+async function submitList() {
+  const title = listTitle.value.trim();
+  const kind = listModalKind.value;
+  const isEditing = listToEdit.value !== null;
+
+  if (!title || !kind) {
+    return;
+  }
+
+  isSavingList.value = true;
+
+  try {
+    if (kind === 'gift') {
+      if (listToEdit.value) {
+        await updateGiftList(listToEdit.value.id, { title });
+      } else {
+        await createGiftList({ title });
+      }
+
+      await loadGiftLists();
+      window.dispatchEvent(new Event('polaris:gift-lists-changed'));
+    } else {
+      if (listToEdit.value) {
+        await updateShoppingList(listToEdit.value.id, { title });
+      } else {
+        await createShoppingList({ title });
+      }
+
+      await loadShoppingLists();
+      window.dispatchEvent(new Event('polaris:shopping-lists-changed'));
+    }
+
+    closeListModal();
+    showSuccessToast(isEditing ? 'Lista renomeada.' : 'Lista criada.');
+  } catch {
+    showErrorToast('Nao foi possivel salvar a lista.');
+  } finally {
+    isSavingList.value = false;
+  }
+}
+
+function openDeleteListModal(kind: 'gift' | 'shopping', list: GiftList | ShoppingList) {
+  listModalKind.value = kind;
+  listToDelete.value = list;
+}
+
+function closeDeleteListModal() {
+  listToDelete.value = null;
+  listModalKind.value = null;
+}
+
+async function confirmDeleteList() {
+  const list = listToDelete.value;
+  const kind = listModalKind.value;
+
+  if (!list || !kind) {
+    return;
+  }
+
+  isDeletingList.value = true;
+
+  try {
+    if (kind === 'gift') {
+      await deleteGiftList(list.id);
+      await loadGiftLists();
+      window.dispatchEvent(new Event('polaris:gift-lists-changed'));
+    } else {
+      await deleteShoppingList(list.id);
+      await loadShoppingLists();
+      window.dispatchEvent(new Event('polaris:shopping-lists-changed'));
+    }
+
+    if (route.query.listId === String(list.id)) {
+      void router.push(kind === 'gift' ? '/gifts' : '/shopping-list');
+    }
+
+    closeDeleteListModal();
+    showSuccessToast('Lista excluida. Os itens foram preservados.');
+  } catch {
+    showErrorToast('Nao foi possivel excluir a lista.');
+  } finally {
+    isDeletingList.value = false;
+  }
+}
+
 onMounted(() => {
   void loadShoppingCategories();
   void loadPersons();
   void loadEvents();
+  void loadGiftLists();
+  void loadShoppingLists();
   loadVaultGiftLists();
   window.addEventListener('polaris:persons-changed', loadPersons);
   window.addEventListener('polaris:shopping-categories-changed', loadShoppingCategories);
   window.addEventListener('polaris:events-changed', loadEvents);
   window.addEventListener('polaris:vault-changed', loadVaultGiftLists);
+  window.addEventListener('polaris:gift-lists-changed', loadGiftLists);
+  window.addEventListener('polaris:shopping-lists-changed', loadShoppingLists);
 });
 
 onUnmounted(() => {
@@ -237,6 +390,8 @@ onUnmounted(() => {
   window.removeEventListener('polaris:shopping-categories-changed', loadShoppingCategories);
   window.removeEventListener('polaris:events-changed', loadEvents);
   window.removeEventListener('polaris:vault-changed', loadVaultGiftLists);
+  window.removeEventListener('polaris:gift-lists-changed', loadGiftLists);
+  window.removeEventListener('polaris:shopping-lists-changed', loadShoppingLists);
 });
 
 watch(() => route.query.vault, (value) => {
@@ -409,6 +564,74 @@ watch(() => route.query.vault, (value) => {
 
         <SidebarSection
           :enable-title="true"
+          title="Listas de compras"
+          :is-sidebar-collapsed="isContentCollapsed"
+        >
+          <div :class="['flex flex-col', isContentCollapsed ? 'gap-2' : 'gap-1']">
+            <SidebarButton
+              :icon="ShoppingCart"
+              title="todos"
+              :is-collapsed="isContentCollapsed"
+              route-to="/shopping-list"
+            />
+            <SidebarButton
+              title="sem lista"
+              :use-random-color="true"
+              :is-collapsed="isContentCollapsed"
+              :route-to="{ path: '/shopping-list', query: { unlisted: 'true' } }"
+            />
+            <button
+              type="button"
+              :class="[isContentCollapsed ? 'interactive-nudge flex h-8 w-8 items-center justify-center rounded-md hover:bg-card hover:text-accent' : 'interactive-nudge flex min-h-8 items-center gap-2 rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-card hover:text-text-primary']"
+              aria-label="Nova lista de compras"
+              @click="openCreateListModal('shopping')"
+            >
+              <Plus :size="16" />
+              <span v-if="!isContentCollapsed">Nova lista</span>
+            </button>
+            <p
+              v-if="shoppingListsErrorMessage && !isContentCollapsed"
+              class="px-2 py-1 text-xs text-text-muted"
+            >
+              {{ shoppingListsErrorMessage }}
+            </p>
+            <div
+              v-for="list in shoppingLists"
+              :key="list.id"
+              class="group flex items-center gap-1"
+            >
+              <SidebarButton
+                :title="list.title"
+                :use-random-color="true"
+                :is-collapsed="isContentCollapsed"
+                :route-to="{ path: '/shopping-list', query: { listId: list.id } }"
+              />
+              <template v-if="!isContentCollapsed">
+                <button
+                  type="button"
+                  class="rounded-md p-1 text-text-muted transition duration-150 hover:bg-card hover:text-text-primary"
+                  aria-label="Renomear lista de compras"
+                  @click="openEditListModal('shopping', list)"
+                >
+                  <Pencil :size="14" />
+                </button>
+                <button
+                  type="button"
+                  class="rounded-md p-1 text-text-muted transition duration-150 hover:bg-card hover:text-text-primary"
+                  aria-label="Excluir lista de compras"
+                  @click="openDeleteListModal('shopping', list)"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </template>
+            </div>
+          </div>
+        </SidebarSection>
+
+        <Divider />
+
+        <SidebarSection
+          :enable-title="true"
           title="Compras"
           :is-sidebar-collapsed="isContentCollapsed"
         >
@@ -449,10 +672,84 @@ watch(() => route.query.vault, (value) => {
                   :title="category.name"
                   :color="category.color"
                   :is-collapsed="isContentCollapsed"
-                  :route-to="{ path: '/shopping-list', query: { tag: category.tag } }"
+                  :route-to="{
+                    path: '/shopping-list',
+                    query: {
+                      ...(route.path === '/shopping-list' ? route.query : {}),
+                      tag: category.tag,
+                    },
+                  }"
                 />
               </div>
             </template>
+          </div>
+        </SidebarSection>
+
+        <Divider />
+
+        <SidebarSection
+          :enable-title="true"
+          title="Listas de presentes"
+          :is-sidebar-collapsed="isContentCollapsed"
+        >
+          <div :class="['flex flex-col', isContentCollapsed ? 'gap-2' : 'gap-1']">
+            <SidebarButton
+              :icon="Gift"
+              title="todos"
+              :is-collapsed="isContentCollapsed"
+              route-to="/gifts"
+            />
+            <SidebarButton
+              title="sem lista"
+              :use-random-color="true"
+              :is-collapsed="isContentCollapsed"
+              :route-to="{ path: '/gifts', query: { unlisted: 'true' } }"
+            />
+            <button
+              type="button"
+              :class="[isContentCollapsed ? 'interactive-nudge flex h-8 w-8 items-center justify-center rounded-md hover:bg-card hover:text-accent' : 'interactive-nudge flex min-h-8 items-center gap-2 rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-card hover:text-text-primary']"
+              aria-label="Nova lista de presentes"
+              @click="openCreateListModal('gift')"
+            >
+              <Plus :size="16" />
+              <span v-if="!isContentCollapsed">Nova lista</span>
+            </button>
+            <p
+              v-if="giftListsErrorMessage && !isContentCollapsed"
+              class="px-2 py-1 text-xs text-text-muted"
+            >
+              {{ giftListsErrorMessage }}
+            </p>
+            <div
+              v-for="list in giftLists"
+              :key="list.id"
+              class="group flex items-center gap-1"
+            >
+              <SidebarButton
+                :title="list.title"
+                :use-random-color="true"
+                :is-collapsed="isContentCollapsed"
+                :route-to="{ path: '/gifts', query: { listId: list.id } }"
+              />
+              <template v-if="!isContentCollapsed">
+                <button
+                  type="button"
+                  class="rounded-md p-1 text-text-muted transition duration-150 hover:bg-card hover:text-text-primary"
+                  aria-label="Renomear lista de presentes"
+                  @click="openEditListModal('gift', list)"
+                >
+                  <Pencil :size="14" />
+                </button>
+                <button
+                  type="button"
+                  class="rounded-md p-1 text-text-muted transition duration-150 hover:bg-card hover:text-text-primary"
+                  aria-label="Excluir lista de presentes"
+                  @click="openDeleteListModal('gift', list)"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </template>
+            </div>
           </div>
         </SidebarSection>
 
@@ -500,7 +797,13 @@ watch(() => route.query.vault, (value) => {
                   :use-random-color="true"
                   :title="person.name"
                   :is-collapsed="isContentCollapsed"
-                  :route-to="{ path: '/gifts', query: { personId: person.id } }"
+                  :route-to="{
+                    path: '/gifts',
+                    query: {
+                      ...(route.path === '/gifts' ? route.query : {}),
+                      personId: person.id,
+                    },
+                  }"
                 />
               </div>
             </template>
@@ -551,7 +854,13 @@ watch(() => route.query.vault, (value) => {
                   :title="event.name"
                   :color="event.color"
                   :is-collapsed="isContentCollapsed"
-                  :route-to="{ path: '/gifts', query: { event: event.tag } }"
+                  :route-to="{
+                    path: '/gifts',
+                    query: {
+                      ...(route.path === '/gifts' ? route.query : {}),
+                      event: event.tag,
+                    },
+                  }"
                 />
               </div>
             </template>
@@ -650,5 +959,85 @@ watch(() => route.query.vault, (value) => {
         </BaseButton>
       </div>
     </form>
+  </BaseModal>
+
+  <BaseModal
+    :is-open="listModalKind !== null && listToDelete === null"
+    :title="listToEdit ? 'Renomear lista' : 'Nova lista'"
+    @close="closeListModal"
+  >
+    <form
+      class="flex flex-col gap-4"
+      @submit.prevent="submitList"
+    >
+      <BaseTextField
+        v-model="listTitle"
+        label="Titulo"
+        required
+      />
+      <div class="flex flex-wrap justify-end gap-2">
+        <BaseButton
+          type="button"
+          variant="secondary"
+          :disabled="isSavingList"
+          @click="closeListModal"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="isSavingList"
+        >
+          {{ isSavingList ? 'Salvando...' : 'Salvar' }}
+        </BaseButton>
+      </div>
+    </form>
+  </BaseModal>
+
+  <BaseModal
+    :is-open="listToDelete !== null"
+    title="Excluir lista"
+    @close="closeDeleteListModal"
+  >
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <p class="text-sm text-text-secondary">
+          A lista <strong class="text-text-primary">{{ listToDelete?.title }}</strong> sera excluida.
+          Os itens serao preservados e ficarao disponiveis em Sem lista.
+        </p>
+      </div>
+      <label class="flex cursor-not-allowed items-start gap-3 rounded-md border-2 border-border bg-bg p-3 opacity-60">
+        <input
+          type="checkbox"
+          disabled
+          class="mt-0.5 size-4 accent-accent"
+        >
+        <span class="flex flex-col gap-1">
+          <span class="text-sm font-semibold text-text-secondary">Excluir tambem os itens desta lista</span>
+          <span class="text-xs text-text-muted">Em breve</span>
+        </span>
+      </label>
+    </div>
+
+    <template #footer>
+      <BaseButton
+        variant="secondary"
+        :disabled="isDeletingList"
+        @click="closeDeleteListModal"
+      >
+        Cancelar
+      </BaseButton>
+      <BaseButton
+        variant="primary"
+        :disabled="isDeletingList"
+        @click="confirmDeleteList"
+      >
+        <template #icon>
+          <Trash2 :size="16" />
+        </template>
+        {{ isDeletingList ? 'Excluindo...' : 'Excluir lista' }}
+      </BaseButton>
+    </template>
   </BaseModal>
 </template>

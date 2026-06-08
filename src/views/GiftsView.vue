@@ -16,6 +16,7 @@ import {
   deleteGift,
   deletePerson,
   getEvents,
+  getGiftLists,
   getGiftsByPerson,
   getGiftStatuses,
   getPerson,
@@ -28,6 +29,7 @@ import type {
   Gift,
   GiftFilters,
   GiftFormData,
+  GiftList,
   GiftStatus,
   GiftWithPersonId,
   NewPersonDTO,
@@ -46,6 +48,8 @@ const persons = ref<Person[]>([]);
 const selectedPerson = ref<Person | null>(null);
 const personGifts = ref<GiftWithPersonId[]>([]);
 const giftColumns = ref<PersonGiftColumn[]>([]);
+const giftLists = ref<GiftList[]>([]);
+const selectedGiftList = ref<GiftList | null>(null);
 const events = ref<Event[]>([]);
 const statuses = ref<GiftStatus[]>([]);
 const isLoading = ref<boolean>(false);
@@ -76,14 +80,25 @@ const giftForm = ref<GiftFormData>({
   personId: 0,
   event: '',
   status: '',
+  giftListId: 0,
 });
 const personForm = ref<PersonFormData>({ ...emptyPersonForm });
 
 const currentPersonId = computed(() => getQueryId(route.query.personId));
+const currentListId = computed(() => getQueryId(route.query.listId));
+const isUnlistedView = computed(() => route.query.unlisted === 'true');
 
 const isPersonPage = computed(() => currentPersonId.value !== undefined);
 
 const pageTitle = computed(() => {
+  if (isUnlistedView.value) {
+    return 'Sem lista';
+  }
+
+  if (selectedGiftList.value) {
+    return selectedGiftList.value.title;
+  }
+
   if (selectedPerson.value) {
     return `Presentes de ${selectedPerson.value.name}`;
   }
@@ -181,6 +196,7 @@ function openEditGiftModal(gift: GiftWithPersonId) {
     personId: gift.personId,
     event: gift.event ?? events.value[0]?.tag ?? '',
     status: gift.status ?? statuses.value[0]?.tag ?? '',
+    giftListId: 0,
   };
   modalErrorMessage.value = '';
   giftToEdit.value = gift;
@@ -241,20 +257,49 @@ async function loadGiftsPage() {
   errorMessage.value = '';
 
   try {
-    const loadedPersons = await getPersons();
+    const [loadedPersons, loadedGiftLists] = await Promise.all([
+      getPersons(),
+      getGiftLists(),
+    ]);
     const loadedSelectedPerson = currentPersonId.value ? await getPerson(currentPersonId.value) : null;
 
     const visiblePersons = loadedPersons.filter((person) => person.id !== BEATRIZ_PERSON_ID);
 
     persons.value = visiblePersons;
     selectedPerson.value = loadedSelectedPerson;
+    giftLists.value = loadedGiftLists;
+    selectedGiftList.value = currentListId.value
+      ? loadedGiftLists.find((list) => list.id === currentListId.value) ?? null
+      : null;
+
+    if (currentListId.value && !selectedGiftList.value) {
+      showErrorToast('A lista de presentes nao foi encontrada.');
+      void router.replace('/gifts');
+      return;
+    }
+
+    const selectedGiftIds = new Set(selectedGiftList.value?.gifts.map((gift) => gift.id) ?? []);
+    const listedGiftIds = new Set(loadedGiftLists.flatMap((list) => list.gifts.map((gift) => gift.id)));
+    const filterByList = (gift: Gift) => {
+      if (currentListId.value) {
+        return selectedGiftIds.has(gift.id);
+      }
+
+      if (isUnlistedView.value) {
+        return !listedGiftIds.has(gift.id);
+      }
+
+      return true;
+    };
     const filters = getGiftFilters();
 
     if (currentPersonId.value) {
       const gifts = await getGiftsByPerson(currentPersonId.value, filters);
 
       if (currentRequestId === requestId) {
-        personGifts.value = gifts.map((gift) => toGiftWithPersonId(gift, currentPersonId.value as number));
+        personGifts.value = gifts
+          .filter(filterByList)
+          .map((gift) => toGiftWithPersonId(gift, currentPersonId.value as number));
         giftColumns.value = [];
       }
 
@@ -264,12 +309,16 @@ async function loadGiftsPage() {
     const giftsByPerson = await Promise.all(
       visiblePersons.map(async (person) => ({
         person,
-        gifts: (await getGiftsByPerson(person.id, filters)).map((gift) => toGiftWithPersonId(gift, person.id)),
+        gifts: (await getGiftsByPerson(person.id, filters))
+          .filter(filterByList)
+          .map((gift) => toGiftWithPersonId(gift, person.id)),
       })),
     );
 
     if (currentRequestId === requestId) {
-      giftColumns.value = giftsByPerson;
+      giftColumns.value = currentListId.value || isUnlistedView.value
+        ? giftsByPerson.filter((column) => column.gifts.length > 0)
+        : giftsByPerson;
       personGifts.value = [];
     }
   } catch {
@@ -401,6 +450,7 @@ onMounted(() => {
   void loadOptions();
   window.addEventListener('polaris:gifts-changed', loadGiftsPage);
   window.addEventListener('polaris:events-changed', loadOptions);
+  window.addEventListener('polaris:gift-lists-changed', loadGiftsPage);
 });
 
 onUnmounted(() => {
@@ -410,6 +460,7 @@ onUnmounted(() => {
 
   window.removeEventListener('polaris:gifts-changed', loadGiftsPage);
   window.removeEventListener('polaris:events-changed', loadOptions);
+  window.removeEventListener('polaris:gift-lists-changed', loadGiftsPage);
   resetPageHeader();
 });
 
@@ -431,7 +482,13 @@ watch(searchTerm, () => {
 watchEffect(() => {
   setPageHeader({
     title: pageTitle.value,
-    subtitle: selectedPerson.value?.birthday ? `Aniversario: ${selectedPerson.value.birthday}` : '',
+    subtitle: selectedGiftList.value || isUnlistedView.value
+      ? selectedPerson.value
+        ? `Presentes de ${selectedPerson.value.name}`
+        : 'Lista de presentes'
+      : selectedPerson.value?.birthday
+        ? `Aniversario: ${selectedPerson.value.birthday}`
+        : '',
     searchTerm: searchTerm.value,
     searchPlaceholder: 'Pesquisar',
     filters: [
@@ -512,7 +569,11 @@ watchEffect(() => {
     <template v-else-if="isPersonPage">
       <BaseEmptyState
         v-if="personGifts.length === 0"
-        :message="hasActiveFilters || searchTerm.trim() ? 'Nenhum presente encontrado para os filtros atuais.' : 'Nenhum presente encontrado para esta pessoa.'"
+        :message="hasActiveFilters || searchTerm.trim()
+          ? 'Nenhum presente encontrado para os filtros atuais.'
+          : currentListId || isUnlistedView
+            ? 'Nenhum presente encontrado nesta lista para esta pessoa.'
+            : 'Nenhum presente encontrado para esta pessoa.'"
       />
       <div
         v-else
@@ -558,7 +619,7 @@ watchEffect(() => {
             <button
               type="button"
               class="min-w-0 truncate text-left text-sm font-bold text-text-primary transition duration-150 hover:text-accent"
-              @click="router.push({ path: '/gifts', query: { personId: column.person.id } })"
+              @click="router.push({ path: '/gifts', query: { ...route.query, personId: column.person.id } })"
             >
               {{ column.person.name }}
             </button>

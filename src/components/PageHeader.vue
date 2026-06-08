@@ -17,16 +17,19 @@ import {
   createShoppingItem,
   createShoppingItemCategory,
   getEvents,
+  getGiftLists,
   getGiftStatuses,
   getPersons,
   getShoppingItemCategories,
   getShoppingItemStatuses,
+  getShoppingLists,
   getVaultGiftLists,
   signup,
 } from '../services';
 import type {
   Event,
   GiftFormData,
+  GiftList,
   GiftStatus,
   NewEventDTO,
   NewPersonDTO,
@@ -36,6 +39,7 @@ import type {
   ShoppingItemCategory,
   ShoppingItemFormData,
   ShoppingItemStatus,
+  ShoppingList,
   VaultGiftFormData,
   VaultGiftList,
 } from '../types';
@@ -69,9 +73,11 @@ const activeCreationType = ref<CreationType | null>(null);
 const persons = ref<Person[]>([]);
 const events = ref<Event[]>([]);
 const giftStatuses = ref<GiftStatus[]>([]);
+const giftLists = ref<GiftList[]>([]);
 const vaultGiftLists = ref<VaultGiftList[]>([]);
 const shoppingCategories = ref<ShoppingItemCategory[]>([]);
 const shoppingStatuses = ref<ShoppingItemStatus[]>([]);
+const shoppingLists = ref<ShoppingList[]>([]);
 const isSaving = ref<boolean>(false);
 const modalErrorMessage = ref<string>('');
 
@@ -81,6 +87,7 @@ const emptyGiftForm: GiftFormData = {
   personId: 0,
   event: '',
   status: '',
+  giftListId: 0,
 };
 
 const emptyPersonForm: PersonFormData = {
@@ -95,6 +102,7 @@ const emptyShoppingItemForm: ShoppingItemFormData = {
   price: 0,
   categoryId: 0,
   statusId: 0,
+  shoppingListId: 0,
 };
 
 const emptyNameColorForm: NameColorFormData = {
@@ -227,6 +235,13 @@ const vaultGiftListOptions = computed(() => [
   })),
 ]);
 
+function getCurrentListId() {
+  const queryValue = Array.isArray(route.query.listId) ? route.query.listId[0] : route.query.listId;
+  const parsedValue = Number(queryValue);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 0;
+}
+
 function resetGiftForm() {
   giftForm.value = {
     title: '',
@@ -234,6 +249,7 @@ function resetGiftForm() {
     personId: persons.value[0]?.id ?? 0,
     event: events.value[0]?.tag ?? '',
     status: giftStatuses.value[0]?.tag ?? '',
+    giftListId: route.name === 'gifts' ? getCurrentListId() : 0,
   };
 }
 
@@ -256,6 +272,7 @@ function resetShoppingItemForm() {
     ...emptyShoppingItemForm,
     categoryId: shoppingCategories.value[0]?.id ?? 0,
     statusId: shoppingStatuses.value[0]?.id ?? 0,
+    shoppingListId: route.name === 'shoppingList' ? getCurrentListId() : 0,
   };
 }
 
@@ -308,15 +325,17 @@ function notify(eventName: string) {
 }
 
 async function loadGiftOptions() {
-  const [loadedPersons, loadedEvents, loadedStatuses] = await Promise.all([
+  const [loadedPersons, loadedEvents, loadedStatuses, loadedLists] = await Promise.all([
     getPersons(),
     getEvents(),
     getGiftStatuses(),
+    getGiftLists(),
   ]);
 
   persons.value = loadedPersons.filter((person) => person.id !== BEATRIZ_PERSON_ID);
   events.value = loadedEvents;
   giftStatuses.value = loadedStatuses;
+  giftLists.value = loadedLists;
 }
 
 async function loadVaultGiftOptions() {
@@ -331,13 +350,15 @@ async function loadVaultGiftOptions() {
 }
 
 async function loadShoppingOptions() {
-  const [loadedCategories, loadedStatuses] = await Promise.all([
+  const [loadedCategories, loadedStatuses, loadedLists] = await Promise.all([
     getShoppingItemCategories(),
     getShoppingItemStatuses(),
+    getShoppingLists(),
   ]);
 
   shoppingCategories.value = loadedCategories;
   shoppingStatuses.value = loadedStatuses;
+  shoppingLists.value = loadedLists;
 }
 
 async function openCreation(type: CreationType) {
@@ -400,6 +421,7 @@ async function submitGift() {
       personId: giftForm.value.personId,
       event: giftForm.value.event || undefined,
       status: giftForm.value.status || undefined,
+      giftListId: giftForm.value.giftListId || undefined,
     });
     closeCreationModal();
     notify(giftForm.value.personId === BEATRIZ_PERSON_ID ? 'polaris:vault-changed' : 'polaris:gifts-changed');
@@ -464,7 +486,10 @@ async function submitShoppingItem() {
   modalErrorMessage.value = '';
 
   try {
-    await createShoppingItem(shoppingItemForm.value);
+    await createShoppingItem({
+      ...shoppingItemForm.value,
+      shoppingListId: shoppingItemForm.value.shoppingListId || undefined,
+    });
     closeCreationModal();
     notify('polaris:shopping-items-changed');
     showSuccessToast('Item salvo.');
@@ -665,6 +690,8 @@ useClickOutside(newMenuRef, () => {
       :persons="persons"
       :events="events"
       :statuses="giftStatuses"
+      :lists="giftLists"
+      show-list
       :is-saving="isSaving"
       :error-message="modalErrorMessage"
       @submit="submitGift"
@@ -744,6 +771,8 @@ useClickOutside(newMenuRef, () => {
       v-model="shoppingItemForm"
       :categories="shoppingCategories"
       :statuses="shoppingStatuses"
+      :lists="shoppingLists"
+      show-list
       :is-saving="isSaving"
       :error-message="modalErrorMessage"
       @submit="submitShoppingItem"

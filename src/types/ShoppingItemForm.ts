@@ -4,4 +4,5 @@ export interface ShoppingItemFormData {
   price: number;
   categoryId: number;
   statusId: number;
+  shoppingListId: number;
 }

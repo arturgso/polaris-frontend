@@ -28,12 +28,21 @@ export interface ShoppingItem {
   updatedAt: string;
 }
 
+export interface ShoppingList {
+  id: number;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  items: ShoppingItem[];
+}
+
 export interface NewShoppingItemDTO {
   title: string;
   link: string;
   price: number;
   categoryId: number;
   statusId: number;
+  shoppingListId?: number;
 }
 
 export interface UpdateShoppingItemDTO {
@@ -42,6 +51,7 @@ export interface UpdateShoppingItemDTO {
   price?: number;
   categoryId?: number;
   statusId?: number;
+  shoppingListId?: number;
 }
 
 export interface NewShoppingItemCategoryDTO {

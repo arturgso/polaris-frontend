@@ -15,6 +15,7 @@ import {
   getShoppingItemCategories,
   getShoppingItems,
   getShoppingItemStatuses,
+  getShoppingLists,
   updateShoppingItem,
 } from '@/services';
 import type {
@@ -22,9 +23,12 @@ import type {
   ShoppingItemCategory,
   ShoppingItemFormData,
   ShoppingItemStatus,
+  ShoppingList,
 } from '@/types';
 
 const shoppingItems = ref<ShoppingItem[]>([]);
+const shoppingLists = ref<ShoppingList[]>([]);
+const selectedShoppingList = ref<ShoppingList | null>(null);
 const categories = ref<ShoppingItemCategory[]>([]);
 const statuses = ref<ShoppingItemStatus[]>([]);
 const route = useRoute();
@@ -48,6 +52,7 @@ const emptyForm: ShoppingItemFormData = {
   price: 0,
   categoryId: 0,
   statusId: 0,
+  shoppingListId: 0,
 };
 const itemForm = ref<ShoppingItemFormData>({ ...emptyForm });
 
@@ -56,6 +61,22 @@ const filteredShoppingItems = computed(() => {
 });
 
 const hasActiveFilters = computed(() => selectedCategoryIds.value.length > 0 || selectedStatusIds.value.length > 0);
+const currentListId = computed(() => getQueryId(route.query.listId));
+const isUnlistedView = computed(() => route.query.unlisted === 'true');
+const pageTitle = computed(() => {
+  if (isUnlistedView.value) {
+    return 'Sem lista';
+  }
+
+  return selectedShoppingList.value?.title ?? 'Lista de compras';
+});
+
+function getQueryId(value: unknown) {
+  const queryValue = Array.isArray(value) ? value[0] : value;
+  const parsedValue = Number(queryValue);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : undefined;
+}
 
 function getQueryString(value: unknown) {
   const queryValue = Array.isArray(value) ? value[0] : value;
@@ -97,10 +118,37 @@ async function loadShoppingItems() {
   errorMessage.value = '';
 
   try {
-    const loadedShoppingItems = await getShoppingItems(getShoppingItemFilters());
+    const [loadedShoppingItems, loadedLists] = await Promise.all([
+      getShoppingItems(getShoppingItemFilters()),
+      getShoppingLists(),
+    ]);
 
     if (currentRequestId === shoppingItemsRequestId) {
-      shoppingItems.value = loadedShoppingItems;
+      shoppingLists.value = loadedLists;
+      selectedShoppingList.value = currentListId.value
+        ? loadedLists.find((list) => list.id === currentListId.value) ?? null
+        : null;
+
+      if (currentListId.value && !selectedShoppingList.value) {
+        showErrorToast('A lista de compras nao foi encontrada.');
+        void router.replace('/shopping-list');
+        return;
+      }
+
+      const selectedItemIds = new Set(selectedShoppingList.value?.items.map((item) => item.id) ?? []);
+      const listedItemIds = new Set(loadedLists.flatMap((list) => list.items.map((item) => item.id)));
+
+      shoppingItems.value = loadedShoppingItems.filter((item) => {
+        if (currentListId.value) {
+          return selectedItemIds.has(item.id);
+        }
+
+        if (isUnlistedView.value) {
+          return !listedItemIds.has(item.id);
+        }
+
+        return true;
+      });
     }
   } catch {
     if (currentRequestId === shoppingItemsRequestId) {
@@ -152,6 +200,7 @@ function openEditModal(item: ShoppingItem) {
     price: item.price,
     categoryId: item.category.id,
     statusId: item.status.id,
+    shoppingListId: 0,
   };
   modalErrorMessage.value = '';
   itemToEdit.value = item;
@@ -223,10 +272,15 @@ function handleShoppingCategoriesChanged() {
   void loadShoppingItemOptions();
 }
 
+function handleShoppingListsChanged() {
+  void loadShoppingItems();
+}
+
 onMounted(() => {
   void loadShoppingItemOptions();
   window.addEventListener('polaris:shopping-items-changed', handleShoppingItemsChanged);
   window.addEventListener('polaris:shopping-categories-changed', handleShoppingCategoriesChanged);
+  window.addEventListener('polaris:shopping-lists-changed', handleShoppingListsChanged);
 });
 
 onUnmounted(() => {
@@ -236,6 +290,7 @@ onUnmounted(() => {
 
   window.removeEventListener('polaris:shopping-items-changed', handleShoppingItemsChanged);
   window.removeEventListener('polaris:shopping-categories-changed', handleShoppingCategoriesChanged);
+  window.removeEventListener('polaris:shopping-lists-changed', handleShoppingListsChanged);
   resetPageHeader();
 });
 
@@ -256,7 +311,8 @@ watch(searchTerm, () => {
 
 watchEffect(() => {
   setPageHeader({
-    title: 'Lista de compras',
+    title: pageTitle.value,
+    subtitle: selectedShoppingList.value || isUnlistedView.value ? 'Lista de compras' : '',
     searchTerm: searchTerm.value,
     searchPlaceholder: 'Pesquisar',
     filters: [
@@ -307,7 +363,11 @@ watchEffect(() => {
 
       <BaseEmptyState
         v-else-if="shoppingItems.length === 0"
-        message="Nenhum item encontrado na lista de compras."
+        :message="hasActiveFilters || searchTerm.trim()
+          ? 'Nenhum item encontrado para os filtros atuais.'
+          : currentListId || isUnlistedView
+            ? 'Nenhum item encontrado nesta lista.'
+            : 'Nenhum item encontrado na lista de compras.'"
       />
 
       <BaseEmptyState

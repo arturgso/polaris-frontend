@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { BaseButton, BaseSelect, BaseTextField } from '@/components';
-import type { ShoppingItemCategory, ShoppingItemFormData, ShoppingItemStatus } from '@/types';
+import type {
+  ShoppingItemCategory,
+  ShoppingItemFormData,
+  ShoppingItemStatus,
+  ShoppingList,
+} from '@/types';
 
 const props = defineProps<{
   modelValue: ShoppingItemFormData;
   categories: ShoppingItemCategory[];
   statuses: ShoppingItemStatus[];
+  lists?: ShoppingList[];
+  showList?: boolean;
   isSaving: boolean;
   errorMessage: string;
 }>();
@@ -68,6 +75,16 @@ function updateField<Key extends keyof ShoppingItemFormData>(key: Key, value: Sh
         @update:model-value="updateField('statusId', $event)"
       />
     </div>
+    <BaseSelect
+      v-if="showList"
+      :model-value="modelValue.shoppingListId"
+      label="Lista de compras"
+      :options="[
+        { id: 0, name: 'Sem lista' },
+        ...(lists ?? []).map((list) => ({ id: list.id, name: list.title })),
+      ]"
+      @update:model-value="updateField('shoppingListId', $event)"
+    />
     <p
       v-if="errorMessage"
       class="text-sm text-text-secondary"

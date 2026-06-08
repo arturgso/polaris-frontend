@@ -25,6 +25,13 @@ export {
   updateGift,
 } from './gifts';
 export {
+  createGiftList,
+  deleteGiftList,
+  getGiftList,
+  getGiftLists,
+  updateGiftList,
+} from './giftLists';
+export {
   getGiftStatuses,
 } from './giftStatus';
 export {
@@ -43,6 +50,13 @@ export {
   getShoppingItemStatuses,
   updateShoppingItem,
 } from './shoppingItems';
+export {
+  createShoppingList,
+  deleteShoppingList,
+  getShoppingList,
+  getShoppingLists,
+  updateShoppingList,
+} from './shoppingLists';
 export {
   createGiftForBeatriz,
   createVaultGiftItem,

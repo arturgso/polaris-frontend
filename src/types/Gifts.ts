@@ -48,14 +48,28 @@ export interface NewGiftDTO {
   personId: number;
   event?: string;
   status?: string;
+  giftListId?: number;
 }
 
 export interface UpdateGiftDTO {
   title?: string;
   link?: string;
   giftFor?: number;
+  giftListId?: number;
   event?: string;
   status?: string;
+}
+
+export interface GiftList {
+  id: number;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  gifts: Gift[];
+}
+
+export interface NewListDTO {
+  title: string;
 }
 
 export interface GiftStatus {
@@ -83,6 +97,7 @@ export interface GiftFormData {
   personId: number;
   event: string;
   status: string;
+  giftListId: number;
 }
 
 export interface PersonFormData {
