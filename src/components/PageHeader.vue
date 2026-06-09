@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, Flower2, Gift, Plus, Search, ShoppingCart, Tags, User, UserPlus, X } from 'lucide-vue-next';
+import { CalendarDays, Flower2, Gift, ListPlus, Plus, Search, ShoppingCart, Tags, User, UserPlus, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { BEATRIZ_PERSON_ID } from '../constants';
@@ -12,7 +12,10 @@ import {
 import {
   createEvent,
   createGift,
+  createGiftList,
+  createShoppingList,
   createVaultGiftItem,
+  createVaultGiftList,
   createPerson,
   createShoppingItem,
   createShoppingItemCategory,
@@ -52,7 +55,19 @@ import BaseModal from './ui/BaseModal.vue';
 import BaseSelect from './ui/BaseSelect.vue';
 import BaseTextField from './ui/BaseTextField.vue';
 
-type CreationType = 'gift' | 'beatriz' | 'person' | 'shoppingItem' | 'shoppingCategory' | 'event' | 'user';
+type CreationType =
+  | 'gift'
+  | 'list'
+  | 'beatriz'
+  | 'person'
+  | 'shoppingItem'
+  | 'shoppingCategory'
+  | 'event'
+  | 'user';
+
+const GIFT_LIST_TYPE = 1;
+const SHOPPING_LIST_TYPE = 2;
+const VAULT_LIST_TYPE = 3;
 
 interface NameColorFormData {
   name: string;
@@ -128,6 +143,8 @@ const personForm = ref<PersonFormData>({ ...emptyPersonForm });
 const shoppingItemForm = ref<ShoppingItemFormData>({ ...emptyShoppingItemForm });
 const shoppingCategoryForm = ref<NameColorFormData>({ ...emptyNameColorForm });
 const eventForm = ref<NameColorFormData>({ ...emptyNameColorForm });
+const listTitle = ref<string>('');
+const listType = ref<number>(GIFT_LIST_TYPE);
 const userForm = ref<UserFormData>({ ...emptyUserForm });
 
 const creationOptions = [
@@ -135,6 +152,11 @@ const creationOptions = [
     type: 'gift' as const,
     label: 'Presente',
     icon: Gift,
+  },
+  {
+    type: 'list' as const,
+    label: 'Lista',
+    icon: ListPlus,
   },
   {
     type: 'beatriz' as const,
@@ -183,6 +205,10 @@ const modalTitle = computed(() => {
 
   if (activeCreationType.value === 'shoppingItem') {
     return 'Novo item';
+  }
+
+  if (activeCreationType.value === 'list') {
+    return 'Nova lista';
   }
 
   if (activeCreationType.value === 'shoppingCategory') {
@@ -284,6 +310,22 @@ function resetEventForm() {
   eventForm.value = { ...emptyNameColorForm };
 }
 
+function resetListForm() {
+  listTitle.value = '';
+
+  if (route.name === 'shoppingList') {
+    listType.value = SHOPPING_LIST_TYPE;
+    return;
+  }
+
+  if (route.name === 'vault') {
+    listType.value = VAULT_LIST_TYPE;
+    return;
+  }
+
+  listType.value = GIFT_LIST_TYPE;
+}
+
 function resetUserForm() {
   userForm.value = { ...emptyUserForm };
 }
@@ -371,6 +413,10 @@ async function openCreation(type: CreationType) {
       resetGiftForm();
     }
 
+    if (type === 'list') {
+      resetListForm();
+    }
+
     if (type === 'beatriz') {
       await loadVaultGiftOptions();
       resetVaultGiftForm();
@@ -429,6 +475,38 @@ async function submitGift() {
   } catch {
     modalErrorMessage.value = 'Nao foi possivel salvar o presente.';
     showErrorToast('Nao foi possivel salvar o presente.');
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+async function submitList() {
+  const title = listTitle.value.trim();
+
+  if (!title || activeCreationType.value !== 'list') {
+    return;
+  }
+
+  isSaving.value = true;
+  modalErrorMessage.value = '';
+
+  try {
+    if (listType.value === GIFT_LIST_TYPE) {
+      await createGiftList({ title });
+      notify('polaris:gift-lists-changed');
+    } else if (listType.value === SHOPPING_LIST_TYPE) {
+      await createShoppingList({ title });
+      notify('polaris:shopping-lists-changed');
+    } else {
+      createVaultGiftList(title);
+      notify('polaris:vault-changed');
+    }
+
+    closeCreationModal();
+    showSuccessToast('Lista criada.');
+  } catch {
+    modalErrorMessage.value = 'Nao foi possivel criar a lista.';
+    showErrorToast('Nao foi possivel criar a lista.');
   } finally {
     isSaving.value = false;
   }
@@ -697,6 +775,51 @@ useClickOutside(newMenuRef, () => {
       @submit="submitGift"
       @cancel="closeCreationModal"
     />
+
+    <form
+      v-else-if="activeCreationType === 'list'"
+      class="flex flex-col gap-4"
+      @submit.prevent="submitList"
+    >
+      <BaseTextField
+        v-model="listTitle"
+        label="Titulo"
+        required
+      />
+      <BaseSelect
+        v-model="listType"
+        label="Tipo"
+        :options="[
+          { id: GIFT_LIST_TYPE, name: 'Presentes' },
+          { id: SHOPPING_LIST_TYPE, name: 'Compras' },
+          { id: VAULT_LIST_TYPE, name: 'Beatriz' },
+        ]"
+        required
+      />
+      <p
+        v-if="modalErrorMessage"
+        class="text-sm text-text-secondary"
+      >
+        {{ modalErrorMessage }}
+      </p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <BaseButton
+          type="button"
+          variant="secondary"
+          :disabled="isSaving"
+          @click="closeCreationModal"
+        >
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="isSaving"
+        >
+          {{ isSaving ? 'Salvando...' : 'Salvar' }}
+        </BaseButton>
+      </div>
+    </form>
 
     <form
       v-else-if="activeCreationType === 'beatriz'"

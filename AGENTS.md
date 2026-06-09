@@ -26,6 +26,12 @@
 - Extract repeated behavior into composables, helpers, constants, or typed components when it improves clarity.
 - Keep components focused: props in, events out, and no unnecessary coupling to unrelated feature state.
 
+## Creation Actions
+
+- All actions that create new records must be exposed through the global `Novo` button in the page header.
+- This includes items, gifts, people, categories, events, users, and all list types.
+- Sidebars and contextual navigation may expose navigation, filtering, renaming, and deletion, but must not add separate creation buttons.
+
 ## API Contract
 
 - Before creating or changing services, DTOs, request payloads, response types, or backend-integrated flows, consult the API Swagger:

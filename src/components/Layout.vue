@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { Menu } from 'lucide-vue-next';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { PageHeader, Sidebar } from '@/components';
 
 const isSidebarCollapsed = ref<boolean>(false);
 const isDrawerOpen = ref<boolean>(false);
 const isCompactScreen = ref<boolean>(false);
-const route = useRoute();
 
 function handleSidebarCollapse(value: boolean) {
   isSidebarCollapsed.value = value;
@@ -30,12 +28,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScreenMode);
 });
 
-watch(
-  () => route.fullPath,
-  () => {
-    isDrawerOpen.value = false;
-  },
-);
 </script>
 
 <template>
