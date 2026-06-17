@@ -381,14 +381,15 @@ async function loadGiftOptions() {
 }
 
 async function loadVaultGiftOptions() {
-  const [loadedEvents, loadedStatuses] = await Promise.all([
+  const [loadedEvents, loadedStatuses, loadedLists] = await Promise.all([
     getEvents(),
     getGiftStatuses(),
+    getVaultGiftLists(),
   ]);
 
   events.value = loadedEvents;
   giftStatuses.value = loadedStatuses;
-  vaultGiftLists.value = getVaultGiftLists();
+  vaultGiftLists.value = loadedLists;
 }
 
 async function loadShoppingOptions() {
@@ -498,7 +499,7 @@ async function submitList() {
       await createShoppingList({ title });
       notify('polaris:shopping-lists-changed');
     } else {
-      createVaultGiftList(title);
+      await createVaultGiftList(title);
       notify('polaris:vault-changed');
     }
 
@@ -512,7 +513,7 @@ async function submitList() {
   }
 }
 
-function submitVaultGift() {
+async function submitVaultGift() {
   if (!vaultGiftForm.value.title.trim()) {
     modalErrorMessage.value = 'Informe o titulo.';
     return;
@@ -522,7 +523,7 @@ function submitVaultGift() {
   modalErrorMessage.value = '';
 
   try {
-    createVaultGiftItem({
+    await createVaultGiftItem({
       title: vaultGiftForm.value.title,
       link: vaultGiftForm.value.link || undefined,
       personId: BEATRIZ_PERSON_ID,

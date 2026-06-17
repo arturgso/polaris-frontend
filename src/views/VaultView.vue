@@ -157,9 +157,13 @@ async function loadOptions() {
   syncFiltersFromRoute();
 }
 
-function loadVaultPage() {
-  vaultGiftLists.value = getVaultGiftLists();
-  vaultItems.value = getVaultGiftItems(getGiftFilters(), selectedListId.value);
+async function loadVaultPage() {
+  const [lists, items] = await Promise.all([
+    getVaultGiftLists(),
+    getVaultGiftItems(getGiftFilters(), selectedListId.value),
+  ]);
+  vaultGiftLists.value = lists;
+  vaultItems.value = items;
 }
 
 function openEditItemModal(gift: GiftWithPersonId) {
@@ -198,7 +202,7 @@ function openDeleteItemModal(gift: GiftWithPersonId) {
   modalErrorMessage.value = '';
 }
 
-function submitItem() {
+async function submitItem() {
   if (!itemForm.value.title.trim()) {
     modalErrorMessage.value = 'Informe o titulo.';
     return;
@@ -220,16 +224,16 @@ function submitItem() {
       return;
     }
 
-    updateVaultGiftItem(itemToEdit.value.id, payload);
+    await updateVaultGiftItem(itemToEdit.value.id, payload);
     showSuccessToast('Presente atualizado.');
     closeItemModal();
-    loadVaultPage();
+    await loadVaultPage();
   } finally {
     isSaving.value = false;
   }
 }
 
-function confirmDeleteItem() {
+async function confirmDeleteItem() {
   if (!itemToDelete.value) {
     return;
   }
@@ -237,9 +241,9 @@ function confirmDeleteItem() {
   isDeleting.value = true;
 
   try {
-    deleteVaultGiftItem(itemToDelete.value.id);
+    await deleteVaultGiftItem(itemToDelete.value.id);
     itemToDelete.value = null;
-    loadVaultPage();
+    await loadVaultPage();
     showSuccessToast('Presente deletado.');
   } finally {
     isDeleting.value = false;
@@ -247,8 +251,8 @@ function confirmDeleteItem() {
 }
 
 onMounted(() => {
-  void loadOptions().finally(loadVaultPage);
-  window.addEventListener('polaris:vault-changed', loadVaultPage);
+  void loadOptions().finally(() => void loadVaultPage());
+  window.addEventListener('polaris:vault-changed', () => void loadVaultPage());
   window.addEventListener('polaris:events-changed', loadOptions);
 });
 
@@ -257,14 +261,14 @@ onUnmounted(() => {
     clearTimeout(searchTimeoutId);
   }
 
-  window.removeEventListener('polaris:vault-changed', loadVaultPage);
+  window.removeEventListener('polaris:vault-changed', () => void loadVaultPage());
   window.removeEventListener('polaris:events-changed', loadOptions);
   resetPageHeader();
 });
 
 watch(() => route.query, () => {
   syncFiltersFromRoute();
-  loadVaultPage();
+  void loadVaultPage();
 }, { immediate: true });
 
 watch(searchTerm, () => {
@@ -272,7 +276,7 @@ watch(searchTerm, () => {
     clearTimeout(searchTimeoutId);
   }
 
-  searchTimeoutId = setTimeout(loadVaultPage, 300);
+  searchTimeoutId = setTimeout(() => void loadVaultPage(), 300);
 });
 
 watchEffect(() => {

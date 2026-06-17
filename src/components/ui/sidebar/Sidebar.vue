@@ -116,17 +116,17 @@ function openVaultPasswordModal() {
   isVaultPasswordModalOpen.value = true;
 }
 
-function submitVaultPassword() {
-  if (!unlockVault(vaultPassword.value)) {
+async function submitVaultPassword() {
+  try {
+    await unlockVault(vaultPassword.value);
+    isVaultPasswordModalOpen.value = false;
+    vaultPassword.value = '';
+    keepMainPanel.value = false;
+    activePanel.value = 'vault';
+    void router.push('/vault');
+  } catch {
     vaultPasswordErrorMessage.value = 'Senha invalida.';
-    return;
   }
-
-  isVaultPasswordModalOpen.value = false;
-  vaultPassword.value = '';
-  keepMainPanel.value = false;
-  activePanel.value = 'vault';
-  void router.push('/vault');
 }
 
 function closeVaultPasswordModal() {

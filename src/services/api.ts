@@ -1,5 +1,6 @@
 import axios, { AxiosHeaders } from 'axios';
 import { clearAuthSession, getAuthSession } from './authSession';
+import { getVaultPassword, getVaultToken } from './vaultSession';
 
 const apiIp =
   import.meta.env.VITE_API_IP ??
@@ -44,6 +45,16 @@ api.interceptors.request.use((config) => {
   if (session !== null) {
     const headers = AxiosHeaders.from(config.headers);
     headers.set('Authorization', getAuthorizationHeader(session.token, session.type));
+
+    const vToken = getVaultToken();
+    const vPassword = getVaultPassword();
+    if (vToken) {
+      headers.set('X-Vault-Token', vToken);
+    }
+    if (vPassword) {
+      headers.set('X-Vault-Password', vPassword);
+    }
+
     config.headers = headers;
   }
 
