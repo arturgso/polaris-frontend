@@ -6,8 +6,10 @@ import type {
   ShoppingItemCategory,
   ShoppingItemFilters,
   ShoppingItemStatus,
+  ShoppingItemStatusName,
   UpdateShoppingItemDTO,
 } from '@/types';
+import { getShoppingItemStatuses as getShoppingItemStatusesFromMetadata } from './statuses';
 
 export async function getShoppingItems(filters: ShoppingItemFilters = {}) {
   const { data } = await api.get<ShoppingItem[]>('/shopping-items', {
@@ -33,10 +35,15 @@ export async function deleteShoppingItem(itemId: number) {
   await api.delete(`/shopping-items/${itemId}`);
 }
 
-export async function getShoppingItemStatuses() {
-  const { data } = await api.get<ShoppingItemStatus[]>('/shopping-item-statuses');
+export async function getShoppingItemStatuses(): Promise<ShoppingItemStatus[]> {
+  const statuses = await getShoppingItemStatusesFromMetadata();
 
-  return data;
+  return statuses.map((status) => ({
+    id: status.id,
+    value: status.value as ShoppingItemStatusName,
+    name: status.name,
+    color: status.color,
+  }));
 }
 
 export async function getShoppingItemCategories() {

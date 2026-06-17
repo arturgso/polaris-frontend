@@ -1,3 +1,5 @@
+import type { GiftStatusDTO } from './Status';
+
 export interface Person {
   id: number;
   name: string;
@@ -26,7 +28,7 @@ export interface Gift {
   link?: string;
   giftFor: string;
   event?: string;
-  status?: string;
+  status?: GiftStatusDTO;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,7 +76,7 @@ export interface NewListDTO {
 
 export interface GiftStatus {
   id: number;
-  tag: string;
+  value: string;
   name: string;
   color?: string;
 }
@@ -111,7 +113,7 @@ export interface VaultGiftItem {
   title: string;
   link?: string;
   event?: string;
-  status?: string;
+  status?: GiftStatusDTO;
   giftListId?: number;
   createdAt: string;
   updatedAt: string;

@@ -116,7 +116,7 @@ const emptyShoppingItemForm: ShoppingItemFormData = {
   link: '',
   price: 0,
   categoryId: 0,
-  statusId: 0,
+  status: '',
   shoppingListId: 0,
 };
 
@@ -274,7 +274,7 @@ function resetGiftForm() {
     link: '',
     personId: persons.value[0]?.id ?? 0,
     event: events.value[0]?.tag ?? '',
-    status: giftStatuses.value[0]?.tag ?? '',
+    status: giftStatuses.value[0]?.value ?? '',
     giftListId: route.name === 'gifts' ? getCurrentListId() : 0,
   };
 }
@@ -284,7 +284,7 @@ function resetVaultGiftForm() {
     title: '',
     link: '',
     event: events.value[0]?.tag ?? '',
-    status: giftStatuses.value[0]?.tag ?? '',
+    status: giftStatuses.value[0]?.value ?? '',
     giftListId: 0,
   };
 }
@@ -297,7 +297,7 @@ function resetShoppingItemForm() {
   shoppingItemForm.value = {
     ...emptyShoppingItemForm,
     categoryId: shoppingCategories.value[0]?.id ?? 0,
-    statusId: shoppingStatuses.value[0]?.id ?? 0,
+    status: shoppingStatuses.value[0]?.value ?? '',
     shoppingListId: route.name === 'shoppingList' ? getCurrentListId() : 0,
   };
 }
@@ -845,10 +845,10 @@ useClickOutside(newMenuRef, () => {
           @update:model-value="vaultGiftForm.event = events.find((event) => event.id === $event)?.tag ?? ''"
         />
         <BaseSelect
-          :model-value="giftStatuses.find((status) => status.tag === vaultGiftForm.status)?.id ?? 0"
+          :model-value="giftStatuses.find((status) => status.value === vaultGiftForm.status)?.id ?? 0"
           label="Status"
           :options="giftStatuses.map((status) => ({ id: status.id, name: status.name }))"
-          @update:model-value="vaultGiftForm.status = giftStatuses.find((status) => status.id === $event)?.tag ?? ''"
+          @update:model-value="vaultGiftForm.status = giftStatuses.find((status) => status.id === $event)?.value ?? ''"
         />
       </div>
       <BaseSelect

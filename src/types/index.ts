@@ -10,6 +10,11 @@ export type {
   DashboardMetricsDTO,
 } from './Dashboard';
 export type {
+  GiftStatusDTO,
+  StatusDTO,
+  StatusesDTO,
+} from './Status';
+export type {
   Event,
   Gift,
   GiftFilters,

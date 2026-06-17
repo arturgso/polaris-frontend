@@ -3,6 +3,6 @@ export interface ShoppingItemFormData {
   link: string;
   price: number;
   categoryId: number;
-  statusId: number;
+  status: string;
   shoppingListId: number;
 }

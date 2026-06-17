@@ -15,14 +15,18 @@ const emit = defineEmits<{
 
 const isMenuOpen = ref<boolean>(false);
 const menuRef = ref<HTMLElement | null>(null);
-const isMuted = computed(() => props.item.status.tag === 'BOUGHT' || props.item.status.tag === 'CANCELED');
+const isMuted = computed(() => props.item.status.value === 'BOUGHT' || props.item.status.value === 'CANCELED');
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
 });
 
-function badgeStyle(color: string) {
+function badgeStyle(color?: string) {
+  if (!color) {
+    return {};
+  }
+
   return {
     backgroundColor: `${color}1A`,
     borderColor: color,

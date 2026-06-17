@@ -17,15 +17,23 @@ const emit = defineEmits<{
 
 const isMenuOpen = ref<boolean>(false);
 const menuRef = ref<HTMLElement | null>(null);
-const eventName = computed(() => getOptionName(props.events, props.gift.event));
-const statusName = computed(() => getOptionName(props.statuses, props.gift.status));
+const eventName = computed(() => getOptionNameByTag(props.events, props.gift.event));
+const statusName = computed(() => props.gift.status?.title ?? getOptionName(props.statuses, props.gift.status?.name));
 
-function getOptionName(items: Array<{ tag: string; name: string }>, tag?: string) {
+function getOptionNameByTag(items: Array<{ tag: string; name: string }>, tag?: string) {
   if (!tag) {
     return 'Nao informado';
   }
 
   return items.find((item) => item.tag === tag)?.name ?? tag;
+}
+
+function getOptionName(items: Array<{ value: string; name: string }>, value?: string) {
+  if (!value) {
+    return 'Nao informado';
+  }
+
+  return items.find((item) => item.value === value)?.name ?? value;
 }
 
 function handleEdit(gift: GiftWithPersonId) {

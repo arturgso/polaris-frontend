@@ -1,8 +1,13 @@
-import { api } from '@/services/api';
+import { getGiftStatuses as getGiftStatusesFromMetadata } from './statuses';
 import type { GiftStatus } from '@/types';
 
-export async function getGiftStatuses() {
-  const { data } = await api.get<GiftStatus[]>('/gift-statuses');
+export async function getGiftStatuses(): Promise<GiftStatus[]> {
+  const statuses = await getGiftStatusesFromMetadata();
 
-  return data;
+  return statuses.map((status) => ({
+    id: status.id,
+    value: status.value,
+    name: status.name,
+    color: status.color,
+  }));
 }

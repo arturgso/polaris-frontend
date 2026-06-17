@@ -30,6 +30,14 @@ function updateField<Key extends keyof ShoppingItemFormData>(key: Key, value: Sh
   });
 }
 
+function getOptionValue(items: Array<{ id: number; value: string }>, id: number) {
+  return items.find((item) => item.id === id)?.value ?? '';
+}
+
+function getOptionId(items: Array<{ id: number; value: string }>, value: string) {
+  return items.find((item) => item.value === value)?.id ?? 0;
+}
+
 </script>
 
 <template>
@@ -68,11 +76,11 @@ function updateField<Key extends keyof ShoppingItemFormData>(key: Key, value: Sh
         @update:model-value="updateField('categoryId', $event)"
       />
       <BaseSelect
-        :model-value="modelValue.statusId"
+        :model-value="getOptionId(statuses, modelValue.status)"
         label="Status"
         :options="statuses"
         required
-        @update:model-value="updateField('statusId', $event)"
+        @update:model-value="updateField('status', getOptionValue(statuses, $event))"
       />
     </div>
     <BaseSelect

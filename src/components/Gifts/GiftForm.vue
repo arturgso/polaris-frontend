@@ -37,8 +37,16 @@ function getOptionTag(items: Array<{ id: number; tag: string }>, id: number) {
   return items.find((item) => item.id === id)?.tag ?? '';
 }
 
-function getOptionId(items: Array<{ id: number; tag: string }>, tag: string) {
+function getOptionIdByTag(items: Array<{ id: number; tag: string }>, tag: string) {
   return items.find((item) => item.tag === tag)?.id ?? 0;
+}
+
+function getOptionValue(items: Array<{ id: number; value: string }>, id: number) {
+  return items.find((item) => item.id === id)?.value ?? '';
+}
+
+function getOptionIdByValue(items: Array<{ id: number; value: string }>, value: string) {
+  return items.find((item) => item.value === value)?.id ?? 0;
 }
 </script>
 
@@ -68,16 +76,16 @@ function getOptionId(items: Array<{ id: number; tag: string }>, tag: string) {
     />
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <BaseSelect
-        :model-value="getOptionId(events, modelValue.event)"
+        :model-value="getOptionIdByTag(events, modelValue.event)"
         label="Evento"
         :options="toSelectOptions(events)"
         @update:model-value="updateField('event', getOptionTag(events, $event))"
       />
       <BaseSelect
-        :model-value="getOptionId(statuses, modelValue.status)"
+        :model-value="getOptionIdByValue(statuses, modelValue.status)"
         label="Status"
         :options="toSelectOptions(statuses)"
-        @update:model-value="updateField('status', getOptionTag(statuses, $event))"
+        @update:model-value="updateField('status', getOptionValue(statuses, $event))"
       />
     </div>
     <BaseSelect

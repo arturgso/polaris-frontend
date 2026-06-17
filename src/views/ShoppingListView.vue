@@ -13,6 +13,7 @@ import { showErrorToast, showSuccessToast, usePageHeader } from '@/composables';
 import {
   deleteShoppingItem,
   getShoppingItemCategories,
+  getShoppingList,
   getShoppingItems,
   getShoppingItemStatuses,
   getShoppingLists,
@@ -51,7 +52,7 @@ const emptyForm: ShoppingItemFormData = {
   link: '',
   price: 0,
   categoryId: 0,
-  statusId: 0,
+  status: '',
   shoppingListId: 0,
 };
 const itemForm = ref<ShoppingItemFormData>({ ...emptyForm });
@@ -84,27 +85,37 @@ function getQueryString(value: unknown) {
   return typeof queryValue === 'string' && queryValue ? queryValue : undefined;
 }
 
-function getSelectedTag(items: Array<{ id: number; tag: string }>, ids: number[], fallbackTag?: string) {
-  const selectedId = ids.length === 1 ? ids[0] : undefined;
-
-  return items.find((item) => item.id === selectedId)?.tag ?? fallbackTag;
-}
-
 function getShoppingItemFilters() {
   const title = searchTerm.value.trim();
 
   return {
     title: title || undefined,
-    tag: getSelectedTag(categories.value, selectedCategoryIds.value, getQueryString(route.query.tag)),
-    status: getSelectedTag(statuses.value, selectedStatusIds.value, getQueryString(route.query.status)),
+    tag: getQueryString(route.query.tag),
+    status: getQueryString(route.query.status),
   };
+}
+
+function matchesShoppingItemFilters(item: ShoppingItem, filters = getShoppingItemFilters()) {
+  if (filters.title && !item.title.toLowerCase().includes(filters.title.toLowerCase())) {
+    return false;
+  }
+
+  if (filters.tag && item.category.tag !== filters.tag) {
+    return false;
+  }
+
+  if (filters.status && item.status.value !== filters.status) {
+    return false;
+  }
+
+  return true;
 }
 
 function syncFiltersFromRoute() {
   const categoryTag = getQueryString(route.query.tag);
   const statusTag = getQueryString(route.query.status);
   const categoryId = categories.value.find((category) => category.tag === categoryTag)?.id;
-  const statusId = statuses.value.find((status) => status.tag === statusTag)?.id;
+  const statusId = statuses.value.find((status) => status.value === statusTag)?.id;
 
   selectedCategoryIds.value = categoryId ? [categoryId] : [];
   selectedStatusIds.value = statusId ? [statusId] : [];
@@ -118,38 +129,48 @@ async function loadShoppingItems() {
   errorMessage.value = '';
 
   try {
-    const [loadedShoppingItems, loadedLists] = await Promise.all([
-      getShoppingItems(getShoppingItemFilters()),
-      getShoppingLists(),
-    ]);
+    const filters = getShoppingItemFilters();
 
-    if (currentRequestId === shoppingItemsRequestId) {
-      shoppingLists.value = loadedLists;
-      selectedShoppingList.value = currentListId.value
-        ? loadedLists.find((list) => list.id === currentListId.value) ?? null
-        : null;
+    if (currentListId.value) {
+      const loadedList = await getShoppingList(currentListId.value);
 
-      if (currentListId.value && !selectedShoppingList.value) {
-        showErrorToast('A lista de compras nao foi encontrada.');
-        void router.replace('/shopping-list');
+      if (currentRequestId !== shoppingItemsRequestId) {
         return;
       }
 
-      const selectedItemIds = new Set(selectedShoppingList.value?.items.map((item) => item.id) ?? []);
-      const listedItemIds = new Set(loadedLists.flatMap((list) => list.items.map((item) => item.id)));
-
-      shoppingItems.value = loadedShoppingItems.filter((item) => {
-        if (currentListId.value) {
-          return selectedItemIds.has(item.id);
-        }
-
-        if (isUnlistedView.value) {
-          return !listedItemIds.has(item.id);
-        }
-
-        return true;
-      });
+      selectedShoppingList.value = loadedList;
+      shoppingLists.value = [];
+      shoppingItems.value = loadedList.items.filter((item) => matchesShoppingItemFilters(item, filters));
+      return;
     }
+
+    if (isUnlistedView.value) {
+      const [loadedShoppingItems, loadedLists] = await Promise.all([
+        getShoppingItems(filters),
+        getShoppingLists(),
+      ]);
+
+      if (currentRequestId !== shoppingItemsRequestId) {
+        return;
+      }
+
+      shoppingLists.value = loadedLists;
+      selectedShoppingList.value = null;
+
+      const listedItemIds = new Set(loadedLists.flatMap((list) => list.items.map((item) => item.id)));
+      shoppingItems.value = loadedShoppingItems.filter((item) => !listedItemIds.has(item.id));
+      return;
+    }
+
+    const loadedShoppingItems = await getShoppingItems(filters);
+
+    if (currentRequestId !== shoppingItemsRequestId) {
+      return;
+    }
+
+    shoppingLists.value = [];
+    selectedShoppingList.value = null;
+    shoppingItems.value = loadedShoppingItems;
   } catch {
     if (currentRequestId === shoppingItemsRequestId) {
       errorMessage.value = 'Nao foi possivel carregar a lista de compras.';
@@ -174,21 +195,42 @@ async function loadShoppingItemOptions() {
 
 function toggleFilter(filterValues: number[], value: number) {
   const isCategoryFilter = filterValues === selectedCategoryIds.value;
-  const queryKey = isCategoryFilter ? 'tag' : 'status';
-  const selectedOption = (isCategoryFilter ? categories.value : statuses.value).find((item) => item.id === value);
+  if (isCategoryFilter) {
+    const selectedOption = categories.value.find((item) => item.id === value);
+
+    if (!selectedOption) {
+      return;
+    }
+
+    const currentTag = getQueryString(route.query.tag);
+
+    void router.replace({
+      path: '/shopping-list',
+      query: {
+        ...route.query,
+        categoryId: undefined,
+        status: undefined,
+        tag: currentTag === selectedOption.tag ? undefined : selectedOption.tag,
+      },
+    });
+    return;
+  }
+
+  const selectedOption = statuses.value.find((item) => item.id === value);
 
   if (!selectedOption) {
     return;
   }
 
-  const currentTag = getQueryString(route.query[queryKey]);
+  const currentTag = getQueryString(route.query.status);
 
   void router.replace({
     path: '/shopping-list',
     query: {
       ...route.query,
       categoryId: undefined,
-      [queryKey]: currentTag === selectedOption.tag ? undefined : selectedOption.tag,
+      tag: undefined,
+      status: currentTag === selectedOption.value ? undefined : selectedOption.value,
     },
   });
 }
@@ -199,7 +241,7 @@ function openEditModal(item: ShoppingItem) {
     link: item.link,
     price: item.price,
     categoryId: item.category.id,
-    statusId: item.status.id,
+    status: item.status.value,
     shoppingListId: 0,
   };
   modalErrorMessage.value = '';

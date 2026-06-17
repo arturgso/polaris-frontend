@@ -4,9 +4,9 @@ export type ShoppingItemCategoryName = 'TECH' | 'HEALTH' | 'MAKEUP' | 'OTHER';
 
 export interface ShoppingItemStatus {
   id: number;
-  tag: ShoppingItemStatusName;
+  value: ShoppingItemStatusName;
   name: string;
-  color: string;
+  color?: string;
 }
 
 export interface ShoppingItemCategory {
@@ -41,7 +41,7 @@ export interface NewShoppingItemDTO {
   link: string;
   price: number;
   categoryId: number;
-  statusId: number;
+  status: string;
   shoppingListId?: number;
 }
 
@@ -50,7 +50,7 @@ export interface UpdateShoppingItemDTO {
   link?: string;
   price?: number;
   categoryId?: number;
-  statusId?: number;
+  status?: string;
   shoppingListId?: number;
 }
 

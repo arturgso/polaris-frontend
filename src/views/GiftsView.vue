@@ -128,41 +128,57 @@ function getQueryString(value: unknown) {
   return typeof queryValue === 'string' && queryValue ? queryValue : undefined;
 }
 
-function getSelectedTag(items: Array<{ id: number; tag: string }>, ids: number[], fallbackTag?: string) {
-  const selectedId = ids.length === 1 ? ids[0] : undefined;
-
-  return items.find((item) => item.id === selectedId)?.tag ?? fallbackTag;
-}
-
 function getGiftFilters(): GiftFilters {
   const title = searchTerm.value.trim();
 
   return {
     title: title || undefined,
-    event: getSelectedTag(events.value, selectedEventIds.value, getQueryString(route.query.event)),
-    status: getSelectedTag(statuses.value, selectedStatusIds.value, getQueryString(route.query.status)),
+    event: getQueryString(route.query.event),
+    status: getQueryString(route.query.status),
   };
 }
 
 function toggleFilter(filterValues: number[], value: number) {
   const isEventFilter = filterValues === selectedEventIds.value;
-  const queryKey = isEventFilter ? 'event' : 'status';
-  const selectedOption = (isEventFilter ? events.value : statuses.value).find((item) => item.id === value);
+  if (isEventFilter) {
+   const selectedOption = events.value.find((item) => item.id === value);
 
-  if (!selectedOption) {
-    return;
+   if (!selectedOption) {
+     return;
+   }
+
+   const currentTag = getQueryString(route.query.event);
+
+   void router.replace({
+     path: '/gifts',
+     query: {
+       ...route.query,
+       eventId: undefined,
+       statusId: undefined,
+       status: undefined,
+       event: currentTag === selectedOption.tag ? undefined : selectedOption.tag,
+     },
+   });
+   return;
   }
 
-  const currentTag = getQueryString(route.query[queryKey]);
+  const selectedOption = statuses.value.find((item) => item.id === value);
+
+  if (!selectedOption) {
+   return;
+  }
+
+  const currentTag = getQueryString(route.query.status);
 
   void router.replace({
-    path: '/gifts',
-    query: {
-      ...route.query,
-      eventId: undefined,
-      statusId: undefined,
-      [queryKey]: currentTag === selectedOption.tag ? undefined : selectedOption.tag,
-    },
+   path: '/gifts',
+   query: {
+     ...route.query,
+     eventId: undefined,
+     statusId: undefined,
+     event: undefined,
+     status: currentTag === selectedOption.value ? undefined : selectedOption.value,
+   },
   });
 }
 
@@ -170,7 +186,7 @@ function syncFiltersFromRoute() {
   const eventTag = getQueryString(route.query.event);
   const statusTag = getQueryString(route.query.status);
   const eventId = events.value.find((event) => event.tag === eventTag)?.id;
-  const statusId = statuses.value.find((status) => status.tag === statusTag)?.id;
+  const statusId = statuses.value.find((status) => status.value === statusTag)?.id;
 
   selectedEventIds.value = eventId ? [eventId] : [];
   selectedStatusIds.value = statusId ? [statusId] : [];
@@ -195,7 +211,7 @@ function openEditGiftModal(gift: GiftWithPersonId) {
     link: gift.link ?? '',
     personId: gift.personId,
     event: gift.event ?? events.value[0]?.tag ?? '',
-    status: gift.status ?? statuses.value[0]?.tag ?? '',
+    status: gift.status?.name ?? statuses.value[0]?.value ?? '',
     giftListId: 0,
   };
   modalErrorMessage.value = '';

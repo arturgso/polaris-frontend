@@ -178,7 +178,7 @@ function openEditItemModal(gift: GiftWithPersonId) {
     title: item.title,
     link: item.link ?? '',
     event: item.event ?? events.value[0]?.tag ?? '',
-    status: item.status ?? statuses.value[0]?.tag ?? '',
+    status: item.status?.name ?? statuses.value[0]?.value ?? '',
     giftListId: item.giftListId ?? 0,
   };
   modalErrorMessage.value = '';
@@ -356,10 +356,10 @@ watchEffect(() => {
           @update:model-value="itemForm.event = events.find((event) => event.id === $event)?.tag ?? ''"
         />
         <BaseSelect
-          :model-value="statuses.find((status) => status.tag === itemForm.status)?.id ?? 0"
+          :model-value="statuses.find((status) => status.value === itemForm.status)?.id ?? 0"
           label="Status"
           :options="statuses.map((status) => ({ id: status.id, name: status.name }))"
-          @update:model-value="itemForm.status = statuses.find((status) => status.id === $event)?.tag ?? ''"
+          @update:model-value="itemForm.status = statuses.find((status) => status.id === $event)?.value ?? ''"
         />
       </div>
       <BaseSelect
