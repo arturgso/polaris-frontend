@@ -11,5 +11,7 @@ export interface DashboardCardProps {
 
 export interface DashboardMetricsDTO {
   shoppingItemsCount: number;
+  giftsCount: number;
   shoppingItemsTotal: number;
+  giftsTotalPrice: number;
 }

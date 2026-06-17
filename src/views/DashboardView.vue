@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
-import { ShoppingCart, TrendingUp } from 'lucide-vue-next';
+import { Gift, ShoppingBag, ShoppingCart, TrendingUp } from 'lucide-vue-next';
 import { BaseButton, BaseEmptyState, DashboardCard } from '@/components';
 import { usePageHeader } from '@/composables';
-import { dashboardGiftCardMock } from '@/mocks';
 import { getDashboardMetrics, getRecentShoppingItems } from '@/services';
 import type { DashboardCardProps, DashboardMetricsDTO, ShoppingItem } from '@/types';
 
@@ -37,9 +36,26 @@ const shoppingDashboardCards = computed<DashboardCardProps[]>(() => [
   },
 ]);
 
+const giftDashboardCards = computed<DashboardCardProps[]>(() => [
+  {
+    id: 2,
+    icon: Gift,
+    title: 'itens em presentes',
+    info: String(dashboardMetrics.value?.giftsCount ?? 0),
+    bottomInfo: 'total cadastrados',
+  },
+  {
+    id: 4,
+    icon: ShoppingBag,
+    title: 'Total Presentes',
+    info: currencyFormatter.format(dashboardMetrics.value?.giftsTotalPrice ?? 0),
+    bottomInfo: 'soma estimada',
+  },
+]);
+
 const dashboardCards = computed<DashboardCardProps[]>(() => [
   ...shoppingDashboardCards.value,
-  ...dashboardGiftCardMock,
+  ...giftDashboardCards.value,
 ]);
 
 async function loadDashboardMetrics() {
