@@ -72,12 +72,8 @@
 
   .interactive-nudge {
     transition-duration: 150ms;
-    transition-property: background-color, border-color, color, transform;
+    transition-property: background-color, border-color, color;
     transition-timing-function: ease-out;
-  }
-
-  .interactive-nudge:hover {
-    transform: translateX(2px);
   }
 
   .motion-enter {
