@@ -40,6 +40,12 @@
 - Keep `src/services/api.ts` as the shared Axios client and respect its current base URL unless the API contract requires a change.
 - If Swagger is unavailable, document the assumption in the final response and keep changes conservative.
 
+## Commits
+
+- Make focused commits when there are multiple unrelated edits instead of one large catch-all commit.
+- Group each commit around a single logical part of the work, even if other changes remain in the working tree.
+- For example, if the sidebar changed, commit the sidebar and its related files together, then commit other feature areas separately.
+
 ## Verification
 
 - Run `npm run lint` after code changes.
