@@ -27,7 +27,7 @@ export async function getGiftsByPerson(personId: number, filters: GiftFilters = 
 
 export async function createGift(payload: NewGiftDTO) {
   if (payload.personId === BEATRIZ_PERSON_ID) {
-    return createGiftForBeatriz(payload);
+    return await createGiftForBeatriz(payload);
   }
 
   const { data } = await api.post<Gift>('/gifts', payload);
@@ -37,8 +37,7 @@ export async function createGift(payload: NewGiftDTO) {
 
 export async function updateGift(giftId: number, payload: UpdateGiftDTO) {
   if (payload.giftFor === BEATRIZ_PERSON_ID) {
-    moveGiftToVault(payload);
-    await deleteGift(giftId);
+    await moveGiftToVault(giftId);
     return;
   }
 

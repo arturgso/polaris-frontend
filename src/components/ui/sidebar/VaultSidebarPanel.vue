@@ -30,8 +30,8 @@ const isModalOpen = ref(false);
 const listToEdit = ref<VaultGiftList | null>(null);
 const listName = ref('');
 
-function loadLists() {
-  lists.value = getVaultGiftLists();
+async function loadLists() {
+  lists.value = await getVaultGiftLists();
 }
 
 function openEditModal(list: VaultGiftList) {
@@ -46,22 +46,22 @@ function closeModal() {
   listName.value = '';
 }
 
-function submitList() {
+async function submitList() {
   const name = listName.value.trim();
 
   if (!name || !listToEdit.value) {
     return;
   }
 
-  updateVaultGiftList(listToEdit.value.id, name);
+  await updateVaultGiftList(listToEdit.value.id, name);
 
-  loadLists();
+  await loadLists();
   closeModal();
 }
 
-function removeList(list: VaultGiftList) {
-  deleteVaultGiftList(list.id);
-  loadLists();
+async function removeList(list: VaultGiftList) {
+  await deleteVaultGiftList(list.id);
+  await loadLists();
 
   if (route.query.listId === String(list.id)) {
     void router.push('/vault');
